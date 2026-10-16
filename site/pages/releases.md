@@ -1,6 +1,6 @@
 # Releases
 
-The current site is built from the Xi **v{VERSION}** source tree when that release is published. The [latest GitHub release](https://github.com/OlegHQ/xi/releases/latest) contains checksummed archives and installation scripts for Linux, macOS, and Windows. The [full release history](https://github.com/OlegHQ/xi/releases) includes notes and prior versions.
+The current site is built from the Xi **v{VERSION}** source tree when that release is published. The [latest GitHub release](https://github.com/olegpustovit/xi/releases/latest) contains checksummed archives and installation scripts for Linux, macOS, and Windows. The [full release history](https://github.com/olegpustovit/xi/releases) includes notes and prior versions.
 
 ## v{VERSION} highlights
 
@@ -11,6 +11,6 @@ The current site is built from the Xi **v{VERSION}** source tree when that relea
 
 Every tagged binary passes package checks before the draft release is prepared. Publishing a release deploys this site from the same tag. Installation and dependency notices travel with the archives.
 
-The v{VERSION} aggregate release gate is not green: eight terminal journeys remain failing, and the existing picker latency gate still misses its limit. See the [release notes](https://github.com/OlegHQ/xi/releases/tag/v{VERSION}) for validation details.
+The v{VERSION} aggregate release gate is not green: eight terminal journeys remain failing, and the existing picker latency gate still misses its limit. See the [release notes](https://github.com/olegpustovit/xi/releases/tag/v{VERSION}) for validation details.
 
 Read the [installation guide](docs/installation/README.html), [performance contract](docs/performance.html), and [testing contract](docs/testing.html) for how a build is qualified.

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-repo=${XI_REPO:-OlegHQ/xi}
+repo=${XI_REPO:-olegpustovit/xi}
 install_dir=${XI_INSTALL_DIR:-${HOME:?HOME must be set}/.local/bin}
 base_url=${XI_RELEASE_URL:-https://github.com/$repo/releases}
 

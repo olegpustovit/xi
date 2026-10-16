@@ -5,13 +5,13 @@
 For macOS and Linux:
 
 ```sh
-curl -fsSL https://github.com/OlegHQ/xi/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/olegpustovit/xi/releases/latest/download/install.sh | sh
 ```
 
 For Windows PowerShell:
 
 ```powershell
-irm https://github.com/OlegHQ/xi/releases/latest/download/install.ps1 | iex
+irm https://github.com/olegpustovit/xi/releases/latest/download/install.ps1 | iex
 ```
 
 The installers verify release checksums before replacing an existing binary. [Installation details](docs/installation/README.html) cover supported platforms, manual archives, and repair steps.

@@ -8,13 +8,13 @@ and install scripts. Linux musl is not yet advertised.
 Install the latest published release:
 
 ```sh
-curl -fsSL https://github.com/OlegHQ/xi/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/olegpustovit/xi/releases/latest/download/install.sh | sh
 ```
 
 On Windows, run in PowerShell:
 
 ```powershell
-irm https://github.com/OlegHQ/xi/releases/latest/download/install.ps1 | iex
+irm https://github.com/olegpustovit/xi/releases/latest/download/install.ps1 | iex
 ```
 
 The installer checks the host before downloading, verifies the archive against

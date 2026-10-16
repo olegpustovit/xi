@@ -1,6 +1,6 @@
 # OpenTUI startup fork
 
-Xi pins [OlegHQ/opentui](https://github.com/OlegHQ/opentui/tree/xi-lazy-ffi) in
+Xi pins [olegpustovit/opentui](https://github.com/olegpustovit/opentui/tree/xi-lazy-ffi) in
 `vendor/opentui`, based on upstream `v0.5.11`
 (`6b9863ea7c5fae22bfebb23c242ddcc4c2b0aa0e`). The submodule commit is the source
 pin; the branch is a convenient place to review changes.

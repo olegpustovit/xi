@@ -1,6 +1,6 @@
 # Xi
 
-Read the [Xi website](https://oleghq.github.io/xi/) for installation, language support,
+Read the [Xi website](https://olegpustovit.github.io/xi/) for installation, language support,
 themes, keys and configuration.
 
 Xi is a keyboard-first terminal code editor built with Bun, strict TypeScript and

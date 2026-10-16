@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 try {
-    $repo = if ($env:XI_REPO) { $env:XI_REPO } else { 'OlegHQ/xi' }
+    $repo = if ($env:XI_REPO) { $env:XI_REPO } else { 'olegpustovit/xi' }
     $releaseUrl = if ($env:XI_RELEASE_URL) { $env:XI_RELEASE_URL.TrimEnd('/') } else { "https://github.com/$repo/releases" }
     $installDir = if ($env:XI_INSTALL_DIR) { $env:XI_INSTALL_DIR } else { Join-Path $HOME '.local/bin' }
 

@@ -3,7 +3,7 @@
 Xi combines an owned Vim engine with multiple selections, language servers, Tree-sitter highlighting, Git, search, tasks, and a keyboard-first workspace. It runs from source with Bun and ships as a self-contained executable for Linux, macOS, and Windows.
 
 ```sh
-curl -fsSL https://github.com/OlegHQ/xi/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/olegpustovit/xi/releases/latest/download/install.sh | sh
 xi path/to/file
 ```
 
