@@ -17,7 +17,14 @@ export interface OwnedVimKeyEvent {
   readonly meta: boolean;
 }
 
+/** `:` and `/`/`?` command-line history shared by every session of one host (Vim's cmdline history). */
+export interface CommandHistoryStore {
+  readonly ex: string[];
+  readonly search: string[];
+}
+
 export interface OwnedVimSessionOptions {
+  readonly history?: CommandHistoryStore;
   /** Registers shared by related directory buffers; undo remains document-local. */
   readonly registers?: { readonly read: () => VimRegisterBank; readonly write: (bank: VimRegisterBank) => void };
   readonly viewId: ViewId;
@@ -96,6 +103,14 @@ export interface VimSearchHighlightState {
   readonly active: boolean;
 }
 
+/** Matches to paint for `/`'s hlsearch and incsearch, bound to one document version. */
+export interface VimSearchHighlightRanges {
+  readonly documentId: string;
+  readonly documentVersion: number;
+  readonly ranges: readonly { readonly start: number; readonly end: number }[];
+  readonly current?: { readonly start: number; readonly end: number };
+}
+
 export interface OwnedVimSession extends WorkbenchReadPort {
   /** Effective insert indentation for this buffer, formatted for the statusline. */
   readonly indentStyle: string;
@@ -108,6 +123,14 @@ export interface OwnedVimSession extends WorkbenchReadPort {
   /** The last successful search pattern (if any) and whether a search prompt is open now,
    * so a UI can highlight matches later without this session scanning the buffer itself. */
   readonly searchHighlight: VimSearchHighlightState | undefined;
+  /** hlsearch / incsearch ranges for the UI to paint; undefined when none apply to this version. */
+  readonly searchHits: VimSearchHighlightRanges | undefined;
+  /** Text `<C-r>{name}` inserts on a command line: a register's first line, or the word under the cursor for `<C-w>`. */
+  commandLineRegisterText(name: string, wordUnderCursor?: boolean): string;
+  /** Run `text` as if typed at a `/` (forward) or `?` (backward) prompt; used by the cmdline window. */
+  submitSearchText(direction: 'forward' | 'backward', text: string): Promise<boolean>;
+  /** Ask the host for the cmdline window (`q:`, `q/`, `q?`, `<C-f>`) with `initial` on its last line. */
+  openCmdlineWindow(window: 'ex' | 'search-forward' | 'search-backward', initial?: string): void;
   /** Re-anchor the engine after a document owner commits an external edit. */
   applyExternalChange(change: CommittedDocumentChange): void;
   /** Close a Vim Insert group before a service-originated edit takes ownership of history. */

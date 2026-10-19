@@ -53,7 +53,7 @@ with tempfile.TemporaryDirectory(prefix="xi-kitty-keyboard-pty-") as temporary:
             raise SystemExit(f"Xi did not reach the workbench: {captured[-4000:]!r}")
         if KITTY_ENABLE.search(captured) is not None:
             raise SystemExit(f"disabled Kitty protocol still emitted an enable sequence: {captured[-5000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

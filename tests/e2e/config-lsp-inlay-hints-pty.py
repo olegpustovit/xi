@@ -103,7 +103,7 @@ with tempfile.TemporaryDirectory(prefix="xi-config-inlay-hints-pty-") as tempora
         read_for(master, captured, 0.2)
         if b":num" not in captured:
             raise SystemExit(f"LSP hint did not reach terminal cells: {captured[-7000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

@@ -123,6 +123,10 @@ export class WorkbenchHostCommands {
 
   async handleVimHostCommand(command: VimHostCommand, sourceViewId: ViewId): Promise<void> {
     const { session, onError, marker } = this.#options;
+    if (command.kind === 'cmdline-window') {
+      this.#options.host.openCmdlineWindow(sourceViewId, command.window, command.initial ?? '');
+      return;
+    }
     let navigation = this.#options.readHostNavigation();
     if (navigation === undefined) {
       await this.#options.ensureHostNavigation();
@@ -384,6 +388,13 @@ export class WorkbenchHostCommands {
     const current = session.views().find((view) => view.viewId === viewId);
     const buffer = current === undefined ? undefined : session.buffer(current.bufferId);
     if (current === undefined) return 'handled';
+    const cmdlineWindow = host.cmdlineWindowOf(viewId);
+    if ((command === 'q' || command === 'q!') && cmdlineWindow !== undefined) {
+      host.closeView(viewId, true);
+      session.focus(cmdlineWindow.origin);
+      host.notifySurfaceChange();
+      return 'handled';
+    }
     if (command === 'q' && buffer?.dirty === true && buffer.viewIds.length === 1) {
       onError('xi: buffer has unsaved changes (use :q! to discard)\n');
       return 'handled';

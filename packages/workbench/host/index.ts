@@ -1,9 +1,9 @@
 import { asIdentifier, type ClipboardPort, type ClockPort, type DocumentId, type Disposable, type Result, type PersistedJumpLocation, type DocumentVersion, type Utf16Offset, type ViewId } from '../../contracts/src/index';
 import type { SelectionSetSnapshot } from '../../selections/src/index';
-import type { TextFileDocument } from '../../document/src/entrypoints/launch';
+import { TextFileDocument } from '../../document/src/entrypoints/launch';
 import { createVimJumpHistory, createVimRegisterBank, recordVimJump, type VimHostCommand, type VimInsertOptions, type VimJumpHistory, type VimNavigationTarget } from '../../vim/src/index';
 import { createOwnedVimSession } from '../vim-session';
-import type { OwnedVimKeyEvent, OwnedVimSession, VimCommandLineState, VimPrefixHelpState } from '../vim-session';
+import type { CommandHistoryStore, OwnedVimKeyEvent, OwnedVimSession, VimCommandLineState, VimPrefixHelpState } from '../vim-session';
 import type { WorkbenchBufferSnapshot, WorkbenchSession, WorkbenchSessionFailure } from '../session';
 
 export type { OwnedVimKeyEvent };
@@ -106,6 +106,9 @@ export class BufferHost {
   #pendingSurfaceChanges: SurfaceChangePayload[] = [];
   #surfaceChangeScheduled = false;
   #documentSequence = 0;
+  /** `:` and `/` history shared by every view, so any window's `q:`/`q/` and prompt recall see the same lines. */
+  readonly commandHistory: CommandHistoryStore = { ex: [], search: [] };
+  readonly #cmdlineWindows = new Map<ViewId, { readonly kind: 'ex' | 'search-forward' | 'search-backward'; readonly origin: ViewId }>();
   #jumpHistory: VimJumpHistory = createVimJumpHistory();
   // One register bank for every buffer's session, so yank/delete in one buffer pastes in another.
   #registers = createVimRegisterBank();
@@ -157,6 +160,7 @@ export class BufferHost {
     const workbenchSession = this.#session;
     const insertOptions = options.insertOptionsForPath?.(workbenchSession.buffer(document.id)?.path) ?? options.insertOptions;
     let publishedMode = 'normal';
+    let publishedSelections: SelectionSetSnapshot | undefined;
     const session = createOwnedVimSession(document, {
       viewId,
       motionGhost: options.motionGhost ?? false,
@@ -166,6 +170,7 @@ export class BufferHost {
       ...(options.mouseYankRegister === undefined ? {} : { mouseYankRegister: options.mouseYankRegister }),
       ...(options.clipboard === undefined ? {} : { clipboard: options.clipboard }),
       isActive: () => workbenchSession.activeViewId === viewId,
+      history: this.commandHistory,
       registers: { read: () => this.#registers, write: (bank) => { this.#registers = bank; } },
       ...(insertOptions === undefined ? {} : { insertOptions }),
       ...(options.clock === undefined ? {} : { clock: options.clock }),
@@ -202,7 +207,8 @@ export class BufferHost {
       onStateChange: (state) => {
         this.#session.syncViewSession(viewId, state.selections, state.mode);
         this.#options.onStateChange?.(document, state);
-        if (publishedMode !== state.mode) { publishedMode = state.mode; this.notifySurfaceChange(); }
+        // The statusline position reads the synced selections, so a moved cursor must wake the chrome too.
+        if (publishedMode !== state.mode || publishedSelections !== state.selections) { publishedMode = state.mode; publishedSelections = state.selections; this.notifySurfaceChange(); }
       },
       // Preview-buffer promotion only needs to run when an edit actually lands, not on
       // every key (most keys are cursor/mode moves that can never change `dirty`).
@@ -429,6 +435,7 @@ export class BufferHost {
     if (!closed.ok || !closed.value.closed) return closed;
     this.sessions.get(viewId)?.dispose();
     this.sessions.delete(viewId);
+    this.#cmdlineWindows.delete(viewId);
     if (this.previewViewId === viewId) this.previewViewId = undefined;
     if (buffer !== undefined && this.#session.buffer(buffer.bufferId) === undefined) {
       this.documents.delete(buffer.bufferId);
@@ -437,6 +444,58 @@ export class BufferHost {
     }
     for (const listener of this.#viewClosedListeners) listener(viewId);
     return closed;
+  }
+
+  /** Vim's cmdline window: a scratch split holding the history (oldest first) and `initial` on a final,
+   * editable line; Enter on any line runs it against `origin` (see the input router). */
+  openCmdlineWindow(origin: ViewId, kind: 'ex' | 'search-forward' | 'search-backward', initial = ''): ViewId | undefined {
+    if (this.#cmdlineWindows.has(origin)) return undefined;
+    const entries = kind === 'ex' ? this.commandHistory.ex : this.commandHistory.search;
+    const lines = [...entries.map((entry) => entry.replaceAll('\n', ' ')), initial];
+    const text = lines.join('\n');
+    const created = TextFileDocument.create(this.nextDocumentId(), text, lines.slice(1).map(() => 'lf' as const), 'lf');
+    if (!created.ok) return undefined;
+    const document = created.value;
+    const split = this.#session.splitView(origin, 'horizontal');
+    if (!split.ok) return undefined;
+    const splitDocument = this.documents.get(split.value.session.documentId);
+    if (splitDocument !== undefined && !this.sessions.has(split.value.viewId)) this.createSession(splitDocument, split.value.viewId, split.value.session.selections);
+    this.documents.set(document.id, document);
+    const opened = this.#session.openBuffer(document, {});
+    if (!opened.ok) { this.documents.delete(document.id); return undefined; }
+    const viewId = opened.value.viewIds[0];
+    if (viewId === undefined) return undefined;
+    this.#cmdlineWindows.set(viewId, { kind, origin });
+    // Vim's 'cmdwinheight' is 7 rows: shrink the new bottom pane from the default half to the smallest the layout allows.
+    const available = this.#session.viewViewportHeight(origin);
+    const branch = findBranchWithSecond(this.#session.splitSnapshot().root, viewId);
+    const windowRows = this.#session.minimumPaneSize;
+    if (branch !== undefined && available !== undefined && available >= windowRows * 2) this.#session.resizeSplit(branch.nodeId, 1 - windowRows / available, available);
+    const session = this.createSession(document, viewId, undefined, lines.length);
+    this.#session.focus(viewId);
+    this.notifySurfaceChange();
+    return session === undefined ? undefined : viewId;
+  }
+
+  cmdlineWindowOf(viewId: ViewId | undefined): { readonly kind: 'ex' | 'search-forward' | 'search-backward'; readonly origin: ViewId } | undefined {
+    return viewId === undefined ? undefined : this.#cmdlineWindows.get(viewId);
+  }
+
+  /** Text of the line holding `viewId`'s primary cursor. */
+  lineTextAtCursor(viewId: ViewId): string | undefined {
+    const view = this.#session.readView(viewId);
+    const document = view === undefined ? undefined : this.documents.get(view.document.id);
+    const head = view?.selections.members.find((member) => member.id === view.selections.primaryId)?.head ?? view?.selections.members[0]?.head;
+    if (document === undefined || head === undefined) return undefined;
+    const snapshot = document.snapshot();
+    const line = snapshot.lineIndexAt(head.at.offset);
+    if (!line.ok) return undefined;
+    const start = snapshot.lineStartOffset(line.value);
+    const next = snapshot.lineStartOffset((line.value + 1) as typeof line.value);
+    if (!start.ok) return undefined;
+    const end = next.ok ? (next.value as number) - 1 : snapshot.lengthUtf16;
+    const text = snapshot.slice(start.value, end as typeof start.value);
+    return text.ok ? text.value : undefined;
   }
 
   onViewClosed(listener: (viewId: ViewId) => void): Disposable {
@@ -534,4 +593,10 @@ export class BufferHost {
     this.#bufferClosedListeners.clear();
     this.#session.dispose();
   }
+}
+
+function findBranchWithSecond(node: import('../session').SplitNode | undefined, viewId: ViewId): import('../session').SplitBranch | undefined {
+  if (node === undefined || node.kind === 'leaf') return undefined;
+  if (node.second.kind === 'leaf' && node.second.viewId === viewId) return node;
+  return findBranchWithSecond(node.first, viewId) ?? findBranchWithSecond(node.second, viewId);
 }

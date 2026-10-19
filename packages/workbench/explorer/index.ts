@@ -675,7 +675,15 @@ export class ExplorerController {
     this.#cancellation.dispose();
   }
 
-  handlePaste(bytes: Uint8Array): void { this.editing?.handlePaste(bytes); }
+  /** Cmd+V / bracketed paste: into the directory buffer, or as typed characters of the active
+   * prompt (filter when none is open) -- the same handlers the keys would reach. */
+  handlePaste(bytes: Uint8Array): void {
+    if (this.editing !== undefined) { this.editing.handlePaste(bytes); return; }
+    const text = new TextDecoder().decode(bytes).split(/\r\n?|\n/u)[0] ?? '';
+    if (text.length === 0 || this.#deleteConfirm !== undefined) return;
+    const keys = [...(this.capturesTextInput ? '' : '/'), ...text];
+    void (async () => { for (const ch of keys) await this.handleKeypress({ name: ch, raw: ch, shift: false, option: false, ctrl: false, meta: false }); })();
+  }
 
   #clearPendingG(): void {
     this.#pendingG = false;

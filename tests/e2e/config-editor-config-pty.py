@@ -46,7 +46,7 @@ with tempfile.TemporaryDirectory(prefix="xi-editor-config-pty-") as temporary:
             raise SystemExit(f"workbench did not start\n{captured[-3000:]!r}")
         if b'XI_EDITOR_CONFIG {"enabled":false,"lineNumber":"relative"}' not in captured:
             raise SystemExit(f"trusted project config did not load independently of editor-config\n{captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

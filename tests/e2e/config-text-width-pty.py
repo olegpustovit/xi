@@ -53,7 +53,7 @@ with tempfile.TemporaryDirectory(prefix="xi-text-width-pty-") as temporary:
         for row, segment in enumerate(("01234", "56", "78", "9A", "BC", "DE"), 1):
             if segment not in screen.row_text(row):
                 raise SystemExit(f"text-width segment {segment!r} missing at row {row}: {screen.row_text(row)!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

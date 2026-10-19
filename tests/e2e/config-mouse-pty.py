@@ -52,7 +52,7 @@ with tempfile.TemporaryDirectory(prefix="xi-mouse-config-pty-") as temporary:
             raise SystemExit(f"Xi did not reach the workbench: {captured[-4000:]!r}")
         if not re.search(rb"\x1b\[\?100[026]l", bytes(captured)):
             raise SystemExit(f"editor.mouse=false did not disable startup mouse reporting: {captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

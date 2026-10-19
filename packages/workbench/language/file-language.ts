@@ -11,6 +11,7 @@ export function languageIdForPath(path: string | undefined): string | undefined 
   if (extension === 'mli') return 'ocaml_interface';
   if (extension === 'rb' || extension === 'rake' || extension === 'gemspec') return 'ruby';
   if (fileName === 'gemfile' || fileName === 'rakefile' || fileName === 'guardfile' || fileName === 'podfile' || fileName === 'vagrantfile' || fileName === '.irbrc') return 'ruby';
+  if (extension === 'swift') return 'swift';
   if (extension === 'json' || extension === 'jsonc') return 'json';
   if (extension === 'toml') return 'toml';
   if (extension === 'md' || extension === 'markdown') return 'markdown';

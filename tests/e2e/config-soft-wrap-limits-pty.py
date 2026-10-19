@@ -63,7 +63,7 @@ with tempfile.TemporaryDirectory(prefix="xi-soft-wrap-limits-pty-") as temporary
         screen.feed(captured)
         if "123456789012345678901234567890123" not in screen.row_text(1) or "4 abc" not in screen.row_text(2):
             raise SystemExit(f"max-wrap=0 did not split at the viewport edge: {screen.row_text(1)!r}, {screen.row_text(2)!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

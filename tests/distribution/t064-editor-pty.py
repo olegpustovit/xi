@@ -69,7 +69,7 @@ try:
     read_for(0.35)
     os.write(master, b"\x13")  # Ctrl-S; the file path is writable.
     read_for(0.35)
-    os.write(master, b"q")
+    os.write(master, b":q\r")
     child.wait(timeout=5)
 finally:
     if child.poll() is None:

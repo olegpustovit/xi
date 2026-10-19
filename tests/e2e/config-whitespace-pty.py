@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory(prefix="xi-whitespace-pty-") as temporary:
         read_for(master, captured, 0.5)
         if "·".encode() not in captured or "→".encode() not in captured or "⏎".encode() not in captured:
             raise SystemExit(f"whitespace glyphs were not rendered: {captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

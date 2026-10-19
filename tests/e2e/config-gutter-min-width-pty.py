@@ -61,7 +61,7 @@ with tempfile.TemporaryDirectory(prefix="xi-gutter-min-width-pty-") as temporary
     try:
         wait_for(master, captured, b"XI_WORKBENCH_READY", 8)
         wait_for(master, captured, b"    4", 5)
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

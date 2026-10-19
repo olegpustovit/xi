@@ -56,8 +56,9 @@ checksums are present before a target is called packaged.
 The compiled Xi CLI embeds the Tree-sitter runtime wasm plus one grammar wasm
 and highlights query per supported language (`apps/xi/src/syntax-assets.ts`
 imports them with `type: "file"`, so `bun build --compile` bundles the bytes).
-No grammar file is checked into the source tree; every one comes from a pinned
-package below. A release that enables another language must add its name,
+Every grammar comes from a pinned package below, except Swift, whose package
+ships no wasm: `vendor/tree-sitter-swift` holds its wasm (built with
+`tree-sitter build --wasm`) and query. A release that enables another language must add its name,
 version, license and notice source here first.
 
 | Grammar | Version | License | Notice source |
@@ -67,6 +68,7 @@ version, license and notice source here first.
 | `tree-sitter-ruby` | 0.23.1 | MIT | `tree-sitter-ruby/LICENSE` |
 | `tree-sitter-json` | 0.24.8 | MIT | `tree-sitter-json/LICENSE` |
 | `tree-sitter-ocaml` (implementation and interface) | 0.23.0 | MIT | `tree-sitter-ocaml/LICENSE` |
+| `tree-sitter-swift` (vendored wasm) | 0.7.1 | MIT | `vendor/tree-sitter-swift/LICENSE` |
 | `@tree-sitter-grammars/tree-sitter-toml` | 0.7.0 | MIT | `@tree-sitter-grammars/tree-sitter-toml/LICENSE` |
 
 Markdown ships the block-level grammar only; inline emphasis and link styling

@@ -86,56 +86,56 @@ with tempfile.TemporaryDirectory(prefix="xi-t082-t083-pty-") as temporary:
         (b" ",),
         (b"Prefix <Sp", b" / Search"),
         "T082 visible prefix-help surface",
-        (b"\x1b", b"q"),
+        (b"\x1b", b":q\r"),
     )
     parser_capture = launch(
         source,
         (b"d",),
         (b"Motion", b"Choose motion"),
         "T082 actual Vim parser prefix-help surface",
-        (b"\x1b", b"q"),
+        (b"\x1b", b":q\r"),
     )
     literal_capture = launch(
         source,
         (b"f",),
         (b"Literal input", b"one character"),
         "T082 literal prefix-help surface",
-        (b"\x1b", b"q"),
+        (b"\x1b", b":q\r"),
     )
     g_capture = launch(
         source,
         (b"g",),
         (b"Continue g command",),
         "T082 g prefix-help surface",
-        (b"\x1b", b"q"),
+        (b"\x1b", b":q\r"),
     )
     ctrl_w_capture = launch(
         source,
         (b"\x17",),
         (b"Continue ctrl-w command",),
         "T082 Ctrl-W prefix-help surface",
-        (b"\x1b", b"q"),
+        (b"\x1b", b":q\r"),
     )
     tab_capture += launch(
         source,
         (b":", b"q", b"\t"),
         (b"Enter: execute", b"XI_EX_COMMANDLINE_STATE",),
         "T083 visible command-line surface",
-        (b"\x1b", b"q"),
+        (b"\x1b", b":q\r"),
     )
     narrowed_capture = launch(
         source,
         (b":", b"fi"),
         (b"files", b"Open the multi-root file picker."),
         "T083 narrowed alias suggestions",
-        (b"\x1b", b"q"),
+        (b"\x1b", b":q\r"),
     )
     alias_capture = launch(
         source,
         (b":", b"files", b"\r"),
         (b"Files ",),
         "T083 executable configured alias",
-        (b"\x1b", b"\x1b", b"q"),
+        (b"\x1b", b"\x1b", b":q\r"),
     )
     enter_capture = launch(
         source,

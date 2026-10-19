@@ -372,7 +372,7 @@ function commandLineRows(model: ExCommandLineReadModel | undefined, width: numbe
   }
   const background = helixThemeColor(theme, 'ui.background', 'bg', theme.background);
   const foreground = readableTextColor(helixThemeColor(theme, 'ui.text', 'fg', theme.foreground), background, theme.foreground);
-  rows.push({ text: `:${model.source.startsWith(':') ? model.source.slice(1) : model.source}`.slice(0, width), foreground, background });
+  rows.push({ text: (/^[:/?]/u.test(model.source) ? model.source : `:${model.source}`).replace(/[\u0000-\u001f]/gu, (control) => `^${String.fromCharCode(control.charCodeAt(0) + 64)}`).slice(0, width), foreground, background });
   return rows;
 }
 

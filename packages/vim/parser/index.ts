@@ -654,7 +654,7 @@ function isRecognizedSingleKey(key: string, mode: VimMode): boolean {
 
 function isMotionKey(key: string): boolean {
   if (MOTION_KEYS.includes(key)) return true;
-  return ['gg', 'g_', 'g$', 'g0', 'g^', 'gm', 'gM', 'gj', 'gk', 'ge', 'gE', 'g;', 'g,', 'g*', 'g#', 'g?', 'g%', 'gJ', 'gI', 'gD', 'go'].includes(key);
+  return ['gg', 'g_', 'g$', 'g0', 'g^', 'gm', 'gM', 'gj', 'gk', 'ge', 'gE', 'g;', 'g,', 'g*', 'g#', 'g?', 'g%', 'gJ', 'gI', 'gD', 'go', 'gn', 'gN'].includes(key);
 }
 
 function modeSelectionKind(mode: VimMode): SelectionKind {

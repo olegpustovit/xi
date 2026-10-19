@@ -127,7 +127,7 @@ def trial(name: str, command: list[str], root: Path, output: Path, index: int,
         cpu_ms = (int(stat[11]) + int(stat[12])) * 1000 / os.sysconf("SC_CLK_TCK")
         first_insert_ms = None
         if empty:
-            os.write(master, b"q")
+            os.write(master, b":q\r")
         else:
             # Sent immediately at the measured boundary; saved bytes prove admission.
             insertion_start = len(captured)

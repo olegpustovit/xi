@@ -94,7 +94,7 @@ def launch(source: Path) -> bytes:
         # Exit Visual explicitly before q, which otherwise starts a Vim macro.
         os.write(master, b"\x1b")
         read_for(master, captured, 0.15)
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         read_for(master, captured, 0.2)
         try:
             child.wait(timeout=10)

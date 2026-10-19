@@ -42,6 +42,7 @@ export type VimHostCommand =
       readonly list: boolean;
     }
   | { readonly kind: 'lookup'; readonly target: string; readonly lookup: 'definition' | 'keyword' | 'command-output' }
+  | { readonly kind: 'cmdline-window'; readonly window: 'ex' | 'search-forward' | 'search-backward'; readonly initial?: string }
   | VimHostWindowCommand;
 export type VimHostWindowCommand = {
       readonly kind: 'window';

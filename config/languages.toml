@@ -15,6 +15,11 @@ command = "ocamllsp"
 args = []
 root-markers = ["dune-project", "dune-workspace", ".git"]
 
+[language-server.swift]
+command = "sourcekit-lsp"
+args = []
+root-markers = ["Package.swift", ".git"]
+
 [language-server.ruby-lsp]
 command = "ruby-lsp"
 args = []
@@ -49,6 +54,13 @@ file-types = ["mli"]
 language-servers = ["ocaml"]
 indent = { tab-width = 2, unit = "  " }
 formatter = { command = "ocamlformat", args = ["--name", "{file}", "-"] }
+auto-format = false
+
+[[language]]
+name = "swift"
+file-types = ["swift"]
+language-servers = ["swift"]
+indent = { tab-width = 4, unit = "    " }
 auto-format = false
 
 [[language]]

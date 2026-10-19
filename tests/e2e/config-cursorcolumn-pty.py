@@ -59,7 +59,7 @@ with tempfile.TemporaryDirectory(prefix="xi-cursorcolumn-pty-") as temporary:
         captured.extend(read_until(master, b"\x1b[48;2;49;50;68m", 3))
         if b"\x1b[48;2;49;50;68m" not in captured:
             raise SystemExit(f"cursorcolumn did not paint the active column: {captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

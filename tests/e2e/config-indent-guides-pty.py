@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory(prefix="xi-indent-guides-pty-") as temporary:
         read_for(master, captured, 0.5)
         if b"|" not in captured or b"child" not in captured or b"grandchild" not in captured:
             raise SystemExit(f"indent guides were not rendered: {captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

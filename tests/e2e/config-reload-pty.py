@@ -107,7 +107,7 @@ with tempfile.TemporaryDirectory(prefix="xi-config-reload-pty-") as temporary:
         os.write(master, b"y")
         read_until(master, output, b"XI_MOUSE_MODE {\"enabled\":false}")
 
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         process.wait(timeout=5)
     finally:
         if process.poll() is None:

@@ -51,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix="xi-picker-visible-pty-") as temporary:
             raise SystemExit(f"disabled ignore flags did not expose dist/a.txt: {captured[-3000:]!r}")
         os.write(master, b"\x1b")
         time.sleep(0.2)
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

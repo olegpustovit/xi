@@ -26,7 +26,7 @@
     "skills:sync": "bun run ./tools/skills-sync.ts",
     "package:audit": "bun run ./tools/package-audit.ts --check",
     "package:build": "bun run tools/package-build.ts",
-    "xi:install": "bun run package:build && mkdir -p ~/.local/bin && cp dist/xi ~/.local/bin/xi.tmp && chmod 755 ~/.local/bin/xi.tmp && mv -f ~/.local/bin/xi.tmp ~/.local/bin/xi && ~/.local/bin/xi --version",
+    "xi:install": "bun run package:build && { [ \"$(uname)\" != Darwin ] || codesign --force --sign - dist/xi; } && mkdir -p ~/.local/bin && cp dist/xi ~/.local/bin/xi.tmp && chmod 755 ~/.local/bin/xi.tmp && mv -f ~/.local/bin/xi.tmp ~/.local/bin/xi && ~/.local/bin/xi --version",
     "package:release": "bun run ./tools/package-release.ts",
     "package:smoke": "bun run package:audit && python3 tests/distribution/t064-compiled-pty.py && python3 tests/distribution/t064-ex-pty.py && bun test tests/distribution/t064-package.test.ts",
     "site:build": "bun run tools/site-build.ts",

@@ -155,6 +155,7 @@ async function main(): Promise<void> {
       await runOpenTuiWorkbench(controllers.workbench, filePath?.label ?? '[No Name]', buildWorkbenchUiOptions(controllers, {
         renderer,
         themeWiring,
+        clipboard,
         marker,
         startupTrace,
         installJobControl,

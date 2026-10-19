@@ -86,7 +86,7 @@ else:
                     break
             else:
                 raise SystemExit(f"configured inline diagnostic did not arrive: {visible(captured)[-6000:]!r}")
-            os.write(master, b"q")
+            os.write(master, b":q\r")
             child.wait(timeout=10)
         finally:
             if child.poll() is None:

@@ -56,7 +56,7 @@ with tempfile.TemporaryDirectory(prefix="xi-scroll-lines-pty-") as temporary:
         commands = [json.loads(match.group(1)) for match in COMMAND.finditer(captured)]
         if not any(item.get("commandId") == "view.scroll-down" and item.get("scrollTop") == 2 for item in commands):
             raise SystemExit(f"configured scroll-lines did not move by two rows: {commands!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

@@ -61,7 +61,7 @@ with tempfile.TemporaryDirectory(prefix="xi-workspace-config-pty-") as temporary
         read_for(master, captured, 2)
         if b'XI_CONFIG_RELOAD {"ok":true' not in captured:
             raise SystemExit(f"workspace trust command did not reload config: {captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:
@@ -76,7 +76,7 @@ with tempfile.TemporaryDirectory(prefix="xi-workspace-config-pty-") as temporary
         read_for(master, captured, 1)
         if b"  1 " not in captured or b"  2 " not in captured:
             raise SystemExit(f"trusted workspace config did not reach relative line numbers: {captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

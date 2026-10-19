@@ -113,13 +113,13 @@ def check(name: str, actual, expected) -> None:
         failures.append(f"{name}: expected {expected!r}, got {actual!r}")
 
 
-# Clean-buffer bare 'q' still quits immediately -- the pre-existing shortcut is unchanged.
-_, still_running = run("hello\n", [b"q"], quit_keys=b"")
-check("clean-buffer bare q quits", still_running, False)
+# Bare 'q' is Vim's macro/cmdline-window prefix now; quitting is :q.
+_, still_running = run("hello\n", [b":q\r"], quit_keys=b"")
+check("clean-buffer :q quits", still_running, False)
 
-# Dirty-buffer bare 'q' still refuses.
-_, still_running = run("hello\n", [b"iXXX\x1b", b"q"], quit_keys=b"")
-check("dirty-buffer bare q refuses", still_running, True)
+# Dirty-buffer :q refuses.
+_, still_running = run("hello\n", [b"iXXX\x1b", b":q\r"], quit_keys=b"")
+check("dirty-buffer :q refuses", still_running, True)
 
 # '<space>q' + an invalid register (Escape) must not start a recording or crash.
 text, _ = run("hello\n", [b" q", b"\x1b", b"x"])

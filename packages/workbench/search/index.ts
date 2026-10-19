@@ -527,6 +527,20 @@ export class SearchController {
     return this.#handleNormalKey(event, key, search);
   }
 
+  /** Cmd+V / bracketed paste: into the replace field when focused, otherwise the query (focusing it first). */
+  handlePaste(bytes: Uint8Array): void {
+    const text = new TextDecoder().decode(bytes).split(/\r\n?|\n/u)[0] ?? '';
+    if (!this.#open || this.#search === undefined || text.length === 0) return;
+    if (this.#mode === 'replace') this.#replaceInput += text;
+    else {
+      this.#mode = 'insert';
+      this.#query += text;
+      this.#selectedIndex = 0;
+      this.#runQuery();
+    }
+    this.#invalidateUiState();
+  }
+
   #handleReplaceKey(event: OwnedVimKeyEvent, key: string): boolean {
     if (key === 'tab' && event.shift) { this.#mode = 'insert'; this.#invalidateUiState(); return true; }
     if (key === 'enter' || key === 'return' || event.raw === '\r' || event.raw === '\n') { void this.applyReplacement(false); return true; }

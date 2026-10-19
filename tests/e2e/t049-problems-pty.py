@@ -51,7 +51,7 @@ with tempfile.TemporaryDirectory(prefix="xi-t049-problems-") as temporary:
         wait_for(master, captured, b"XI_PROBLEMS_OPEN", 5)
         os.write(master, b"\x1b")
         wait_for(master, captured, b"XI_PROBLEMS_CLOSED", 5)
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

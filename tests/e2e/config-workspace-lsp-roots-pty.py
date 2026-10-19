@@ -96,7 +96,7 @@ with tempfile.TemporaryDirectory(prefix="xi-workspace-lsp-roots-pty-") as tempor
         matches = [json.loads(match.group(1)) for match in SESSION_ROOT.finditer(captured)]
         if not matches or matches[-1].get("root") != str(workspace / "client"):
             raise SystemExit(f"workspace-lsp-roots did not select client root: {matches!r}; output={captured[-5000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

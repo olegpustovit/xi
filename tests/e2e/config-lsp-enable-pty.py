@@ -57,7 +57,7 @@ with tempfile.TemporaryDirectory(prefix="xi-lsp-enable-pty-") as temporary:
         started = [json.loads(match.group(1)) for match in STARTED.finditer(captured)]
         if not disabled or started:
             raise SystemExit(f"editor.lsp.enable=false did not gate startup: disabled={disabled!r} started={started!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

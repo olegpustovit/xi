@@ -59,7 +59,7 @@ with tempfile.TemporaryDirectory(prefix="xi-cli-config-pty-") as temporary:
         for row, label, text in ((1, "1", "one"), (2, "1", "two"), (3, "2", "three"), (4, "3", "four")):
             if f"{label}  {text}" not in screen.row_text(row):
                 raise SystemExit(f"CLI config did not render relative line numbers at row {row}: {screen.row_text(row)!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

@@ -162,6 +162,8 @@ export interface OpenTuiWorkbenchOptions {
   readonly dispatchKey: (event: KeyEvent) => 'consumed' | 'pending' | 'unhandled' | 'quit' | Promise<'consumed' | 'pending' | 'unhandled' | 'quit'>;
   /** Bracketed-paste bytes, delivered as one opaque event; never re-parsed as keystrokes. */
   readonly onPaste?: (bytes: Uint8Array) => void;
+  /** Cmd+V arrived as a key rather than a paste event; the host reads its clipboard and pastes. */
+  readonly onClipboardPaste?: () => void;
   /** Optional editor pointer route; semantic placement remains application-owned. */
   readonly onPointer?: (event: WorkbenchPointerEvent) => boolean;
   readonly onPointerCancel?: (reason: 'resize' | 'dispose' | 'escape' | 'suspend') => void;

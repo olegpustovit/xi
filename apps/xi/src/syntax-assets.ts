@@ -76,6 +76,10 @@ const GRAMMAR_ASSET_LOADERS: Readonly<Record<string, GrammarAssetLoaders>> = {
     wasm: () => import('../../../node_modules/tree-sitter-ocaml/tree-sitter-ocaml_interface.wasm' as string, { with: { type: 'file' } }),
     highlights: () => import('../../../node_modules/tree-sitter-ocaml/queries/highlights.scm' as string, { with: { type: 'file' } }),
   },
+  swift: {
+    wasm: () => import('../../../vendor/tree-sitter-swift/tree-sitter-swift.wasm' as string, { with: { type: 'file' } }),
+    highlights: () => import('../../../vendor/tree-sitter-swift/highlights.scm' as string, { with: { type: 'file' } }),
+  },
   json: {
     wasm: () => import('../../../node_modules/tree-sitter-json/tree-sitter-json.wasm' as string, { with: { type: 'file' } }),
     highlights: () => import('../../../node_modules/tree-sitter-json/queries/highlights.scm' as string, { with: { type: 'file' } }),

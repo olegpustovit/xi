@@ -69,7 +69,7 @@ with tempfile.TemporaryDirectory(prefix="xi-rainbow-brackets-pty-") as temporary
             scopes = states[-1].get("rainbowScopes", [])
             if bool(scopes) != enabled:
                 raise SystemExit(f"rainbow={enabled} produced unexpected scopes {scopes!r}: {captured[-5000:]!r}")
-            os.write(master, b"q")
+            os.write(master, b":q\r")
             child.wait(timeout=5)
         finally:
             if child.poll() is None:

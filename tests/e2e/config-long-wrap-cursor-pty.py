@@ -66,7 +66,7 @@ with tempfile.TemporaryDirectory(prefix="xi-long-wrap-cursor-") as temporary:
         os.kill(child.pid, signal.SIGWINCH)
         screen = Screen(12, 42)
         read_until(master, child.stderr.fileno(), screen, diagnostics, lambda: target_visible(screen), 8)
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=6)
     finally:
         if child.poll() is None:

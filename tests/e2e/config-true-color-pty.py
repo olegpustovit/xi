@@ -39,7 +39,7 @@ def launch(root: Path, enabled: bool) -> bytes:
                     break
         if b"XI_WORKBENCH_READY" not in captured:
             raise SystemExit(f"Xi did not reach the workbench: {bytes(captured[-4000:])!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

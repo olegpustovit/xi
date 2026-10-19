@@ -103,7 +103,7 @@ with tempfile.TemporaryDirectory(prefix="xi-t094-terminal-pty-") as temporary:
     try:
         clean_raw_while_running = raw_mode(clean.master)
         clean_enabled = all(mode in clean.output for mode in MOUSE_ENTER)
-        os.write(clean.master, b"q")
+        os.write(clean.master, b":q\r")
         clean_exit = clean.wait_exit()
         results["cleanQuit"] = {
             "exitCode": clean_exit,
@@ -150,7 +150,7 @@ with tempfile.TemporaryDirectory(prefix="xi-t094-terminal-pty-") as temporary:
             read_for(job.master, job.output, 0.05)
         resumed_cleanly = (sum(job.output.count(mode) for mode in MOUSE_ENTER) > enable_count_before_continue
                            and raw_mode(job.master))
-        os.write(job.master, b"q")
+        os.write(job.master, b":q\r")
         job_exit = job.wait_exit()
         results["suspendResume"] = {
             "stopped": stopped_cleanly,

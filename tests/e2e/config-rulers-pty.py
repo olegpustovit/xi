@@ -47,7 +47,7 @@ with tempfile.TemporaryDirectory(prefix="xi-rulers-pty-") as temporary:
         read_for(master, captured, 0.5)
         if not re.search(rb"\x1b\[2;13H\x1b\[38;2;[0-9;]+m\x1b\[48;2;(?!255;255;255m)[0-9;]+mf", captured):
             raise SystemExit(f"configured ruler background was not painted: {captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

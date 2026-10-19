@@ -29,6 +29,11 @@ export function StatusSurface(props: StatusSurfaceSpec): JSX.Element {
     return !props.commandLineOpen() && message() !== undefined;
   };
   const row = () => { version(); return Math.max(0, dimensions().height - (props.aboveStatusLine?.() === true ? 2 : 1)); };
+  // A `\0` splits the message into left text and a right-aligned part (nvim's `/pat      [2/3]`).
+  const displayText = (): string => {
+    const [left = '', right] = (message()?.text ?? '').replace(/\n$/u, '').split('\0');
+    return right === undefined ? left : `${left.padEnd(Math.max(left.length + 1, dimensions().width - right.length))}${right}`;
+  };
   onCleanup(() => { themeSubscription.dispose(); subscription.dispose(); surfaceSubscription?.dispose(); });
 
   return (
@@ -36,7 +41,7 @@ export function StatusSurface(props: StatusSurfaceSpec): JSX.Element {
       zIndex={130} visible={visible()} backgroundColor={helixThemeColor(theme(), 'ui.statusline', 'bg', theme().background)}>
       <text width="100%" height={1} wrapMode="none"
         fg={readableTextColor(message()?.kind === 'error' ? helixThemeColor(theme(), 'error', 'fg', theme().error) : helixThemeColor(theme(), 'ui.statusline', 'fg', theme().foreground), helixThemeColor(theme(), 'ui.statusline', 'bg', theme().background), theme().foreground)}>
-        <span style={helixTextAttributes(helixThemeStyle(theme(), message()?.kind === 'error' ? 'error' : 'ui.statusline'))}>{message()?.text ?? ''}</span>
+        <span style={helixTextAttributes(helixThemeStyle(theme(), message()?.kind === 'error' ? 'error' : 'ui.statusline'))}>{displayText()}</span>
       </text>
     </box>
   );

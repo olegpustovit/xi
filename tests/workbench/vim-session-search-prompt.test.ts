@@ -148,7 +148,7 @@ async function main(): Promise<void> {
     assert.ok(s.messages.some((message) => message.includes('E486') && message.includes('zzz')), 'PROMPT-13 a failed search reports E486: Pattern not found');
   }
 
-  // 1f. A forward search that must wrap reports "search hit BOTTOM, continuing at TOP".
+  // 1f. A forward search that must wrap echoes nvim's `/foo` + right-aligned `W [1/N]` (nvim 0.12 shows no "search hit BOTTOM" text).
   {
     const s = session('aaa\nfoo\naaa\nfoo\naaa\n');
     await type(s, keys('/foo<CR>'));
@@ -158,7 +158,7 @@ async function main(): Promise<void> {
     s.messages.length = 0;
     await type(s, keys('/foo<CR>'));
     assert.equal(s.line(), 1, 'PROMPT-16 a third search wraps back to the first match');
-    assert.ok(s.messages.some((message) => message.includes('hit BOTTOM')), 'PROMPT-17 wrapping reports search hit BOTTOM, continuing at TOP');
+    assert.ok(s.messages.some((message) => /^\/foo\0W \[1\/\d+\]/u.test(message)), `PROMPT-17 wrapping echoes /foo with W [1/N]: ${JSON.stringify(s.messages)}`);
   }
 
   // 1g. An empty `/`+Enter repeats the last committed pattern.
@@ -287,6 +287,108 @@ async function main(): Promise<void> {
     await type(s, keys('d/foo/+1<CR>'));
     assert.equal(s.text(), 'ddd\n', 'PROMPT-42 d/pattern/+1<CR> deletes linewise through the offset line');
     assert.equal(s.cursor(), 0, 'PROMPT-43 the cursor lands at the start of the remaining text');
+  }
+
+  // 1k. nvim 'incsearch'/'hlsearch': the prompt previews the match while typing (cursor restored on
+  // <Esc>), the committed search keeps its matches highlighted until :noh, and the echo is `/pat` +
+  // `[i/N]`. Oracle: nvim --clean on the same buffer echoes `/hel   [2/2]`.
+  {
+    const s = session('hello world\nfoo bar\nhello again\n');
+    await type(s, keys('/agai'));
+    const typed = s.vim.searchHits;
+    assert.equal(typed?.ranges.length, 1, 'PROMPT-44 incsearch exposes the previewed match while the prompt is open');
+    assert.equal(s.cursor(), 'hello world\nfoo bar\nhello '.length, 'PROMPT-45 incsearch shows the cursor on the previewed match');
+    await type(s, keys('<Esc>'));
+    assert.equal(s.cursor(), 0, 'PROMPT-46 <Esc> restores the cursor incsearch moved');
+    assert.equal(s.vim.searchHits, undefined, 'PROMPT-47 <Esc> leaves nothing highlighted');
+    s.messages.length = 0;
+    await type(s, keys('/hel<CR>'));
+    assert.deepEqual(s.messages, ['/hel\0[2/2]\n'], 'PROMPT-48 a committed search echoes the pattern and [i/N]');
+    const hits = (): { readonly ranges: readonly unknown[] } | undefined => s.vim.searchHits;
+    assert.equal(hits()?.ranges.length, 2, 'PROMPT-49 hlsearch keeps every match after <CR>');
+    await type(s, keys(':noh<CR>'));
+    assert.equal(hits(), undefined, 'PROMPT-50 :noh clears hlsearch');
+    await type(s, keys('/foo bar<C-w>ba<CR>'));
+    assert.equal(s.cursor(), 'hello world\n'.length, 'PROMPT-51 <C-w> deletes the previous word in the search prompt');
+  }
+
+  // 1l. nvim cmdline editing in the `/` prompt. Oracle: nvim --clean in tmux on the same keys:
+  // `/foo<CR>/bar<CR>/<Up>` -> `/bar`, `<Up>` -> `/foo`, `<Down>` -> `/bar`; `/abc<Left><Left>X` ->
+  // `/aXbc`, `<C-b>Y` -> `/YaXbc`, `<Del>` -> `/YXbc`; `gg/<C-r><C-w>` -> `/hello`; `/<C-r>/` -> last pattern.
+  {
+    const s = session('hello world\nfoo bar\nhello again\n');
+    const line = (): string | undefined => s.vim.commandLine?.source;
+    await type(s, keys('/foo<CR>/bar<CR>/<Up>'));
+    assert.equal(line(), '/bar', 'PROMPT-52 <Up> recalls the newest search');
+    await type(s, keys('<Up>'));
+    assert.equal(line(), '/foo', 'PROMPT-53 <Up> again recalls the previous one');
+    await type(s, keys('<Down>'));
+    assert.equal(line(), '/bar', 'PROMPT-54 <Down> moves forward in history');
+    await type(s, keys('<Esc>/aBc<Left><Left>X'));
+    assert.equal(line(), '/aXBc', 'PROMPT-55 typing inserts at the cursor with the typed case');
+    await type(s, keys('<C-b>Y'));
+    assert.equal(line(), '/YaXBc', 'PROMPT-56 <C-b> moves to the start of the line');
+    await type(s, keys('<Delete>'));
+    assert.equal(line(), '/YXBc', 'PROMPT-57 <Del> deletes under the cursor');
+    await type(s, keys('<Esc>/<C-r>/'));
+    assert.equal(line(), '/bar', 'PROMPT-58 <C-r>/ inserts the last search pattern');
+    await type(s, keys('<Esc>'));
+  }
+
+  // 1m. Offsets, search operators, gn and dot-repeat. Oracle: nvim --clean in tmux on
+  // 'hello world\nfoo bar foo\nHello again hello\nlast line foo\n'.
+  {
+    const text = 'hello world\nfoo bar foo\nHello again hello\nlast line foo\n';
+    const echo = async (source: string): Promise<string | undefined> => { const s = session(text); await type(s, keys(source)); return s.messages.at(-1); };
+    assert.equal(await echo('/hel/e<CR>'), '/hel/e\0[1/2]\n', 'PROMPT-59 an end offset echoes itself and counts the match under the cursor');
+    assert.equal(await echo('/foo/b+2<CR>'), '/foo/s+2\0[1/3]\n', 'PROMPT-60 b normalizes to s in the echo');
+    assert.equal(await echo('/o/+1<CR>'), '/o/+1\0[2/10]\n', 'PROMPT-61 a line offset echoes with the count at the cursor');
+    assert.equal(await echo('3/hel<CR>'), '/hel\0W [2/2]\n', 'PROMPT-62 a counted search that wraps reports W');
+    assert.equal(await echo('jj*'), '/\\<Hello\\>\0W [1/1]\n', 'PROMPT-63 * echoes the plain word');
+    {
+      const s = session(text);
+      await type(s, keys('/hel/e<CR>'));
+      assert.equal(s.cursor(), 2, 'PROMPT-64 /hel/e from the first match lands on its last character, not the next match');
+    }
+    {
+      const s = session(text);
+      await type(s, keys('/hel<CR>dn'));
+      assert.equal(s.text(), 'hello\nlast line foo\n', 'PROMPT-65 dn deletes from the cursor to the next match (wrapping)');
+    }
+    {
+      const s = session(text);
+      await type(s, keys('/o<CR>cgnX<Esc>..'));
+      assert.equal(s.text(), 'hellX wXrld\nfXo bar foo\nHello again hello\nlast line foo\n', 'PROMPT-66 cgn changes the match and . repeats it on the following matches');
+    }
+    {
+      const s = session(text);
+      await type(s, keys('/hel<CR>d/foo<CR>.'));
+      assert.equal(s.text(), 'hello world\nfoo\n', 'PROMPT-67 . repeats a search-motion operator with the same pattern');
+    }
+  }
+
+  // 1n. Vim's `q`: `q:`, `q/`, `q?` ask the host for the cmdline window, `q{reg}` records a macro and a
+  // bare `q` stops it -- none of it quits. <C-f> on a prompt opens the window with the typed text.
+  {
+    const commands: unknown[] = [];
+    const s = session('hello\nworld\n', { onHostCommand: (command) => { commands.push(command); } });
+    await type(s, keys('q:'));
+    await type(s, keys('q/'));
+    await type(s, keys('q?'));
+    await type(s, keys('/hel<C-f>'));
+    await type(s, keys(':set<C-f>'));
+    assert.deepEqual(commands, [
+      { kind: 'cmdline-window', window: 'ex' },
+      { kind: 'cmdline-window', window: 'search-forward' },
+      { kind: 'cmdline-window', window: 'search-backward' },
+      { kind: 'cmdline-window', window: 'search-forward', initial: 'hel' },
+      { kind: 'cmdline-window', window: 'ex', initial: 'set' },
+    ], 'PROMPT-68 q:, q/, q? and <C-f> request the cmdline window');
+    assert.equal(s.vim.commandLineActive, false, 'PROMPT-69 <C-f> leaves the prompt');
+    await type(s, keys('qaxq'));
+    await type(s, keys('@a'));
+    assert.equal(s.text(), 'llo\nworld\n', 'PROMPT-70 q{reg} records, q stops, @{reg} replays (x twice)');
+    assert.equal(await s.vim.handleKey(event('q')), true, 'PROMPT-71 a bare q does not quit');
   }
 
   console.log('vim-session-search-prompt: all fixtures passed');

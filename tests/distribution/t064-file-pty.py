@@ -40,7 +40,7 @@ try:
             transcript.extend(chunk)
         if b"XI_WORKBENCH_READY" in transcript:
             break
-    os.write(master, b"q")
+    os.write(master, b":q\r")
     child.wait(timeout=5)
 finally:
     os.close(master)

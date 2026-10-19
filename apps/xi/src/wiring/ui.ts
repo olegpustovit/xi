@@ -1,9 +1,10 @@
 import { createDirectoryExplorerRead } from '../../../../packages/ui/src/entrypoints/explorer';
-import type { ViewId } from '../../../../packages/primitives/src/entrypoints/launch';
+import { CancellationSource, type ViewId } from '../../../../packages/primitives/src/entrypoints/launch';
 import type { DirectoryDraftReadPort, DirectoryDraftReadModel } from '../../../../packages/ui/src/entrypoints/launch';
 import { LIGHT_WORKBENCH_THEME, type WorkbenchTheme } from '../../../../packages/ui/src/entrypoints/theme';
 import type { runOpenTuiWorkbench } from '../../../../packages/ui/src/entrypoints/launch';
 import type { PointerPanelEvent } from '../../../../packages/workbench/src/entrypoints/launch';
+import type { ClipboardPort } from '../../../../packages/contracts/src/entrypoints/launch';
 import type { ThemeWiring } from './theme';
 import type { Controllers } from './controllers';
 
@@ -28,6 +29,7 @@ const LOADING_EXPLORER_MODEL = Object.freeze({
 export interface WorkbenchUiOptionsDeps {
   readonly renderer: ReturnType<typeof import('../../../../packages/ui/src/entrypoints/launch').createOpenTuiRenderer>;
   readonly themeWiring: ThemeWiring;
+  readonly clipboard: ClipboardPort;
   readonly marker: (name: string, payload?: unknown) => void;
   readonly startupTrace: (label: string) => void;
   readonly installJobControl: (control: { suspend: () => void; resume: () => void }) => { dispose(): void };
@@ -110,7 +112,7 @@ function buildEditorPresentationPort(workbench: Controllers['workbench'], search
     readPresentation: (viewId) => {
       const view = workbench.readView(viewId as ViewId);
       if (view === undefined) return undefined;
-      const searchHighlight = searchFeature.readPresentation(String(view.document.id), view.document.version) ?? null;
+      const searchHighlight = searchFeature.readPresentation(String(view.document.id), view.document.version) ?? host.sessions.get(viewId as ViewId)?.searchHits ?? null;
       const highlightRanges = languageWiring.documentHighlights(String(view.document.id), Number(view.document.version));
       const documentHighlight = highlightRanges.length === 0 ? null : {
         documentId: String(view.document.id),
@@ -177,6 +179,11 @@ function handleWorkbenchReady(controllers: Controllers, startupTrace: WorkbenchU
  * models/handlers, and the `onReady` deferred work -- all sourced from the controllers record
  * `wiring/controllers.ts` already constructed. Mechanical extraction of what used to be
  * main()'s final ~110-line inline object literal. */
+function pasteClipboard(clipboard: ClipboardPort, paste: (bytes: Uint8Array) => void): void {
+  const cancellation = new CancellationSource();
+  void clipboard.readText(cancellation.token).then((read) => { if (read.ok && read.value.length > 0) paste(new TextEncoder().encode(read.value)); }).finally(() => cancellation.dispose());
+}
+
 export function buildWorkbenchUiOptions(controllers: Controllers, deps: WorkbenchUiOptionsDeps): WorkbenchUiOptions {
   const {
     host, inputRouter, pointerRouter, sidebarController, contextMenuStore, syntaxTracker, optionalServices,
@@ -229,7 +236,7 @@ export function buildWorkbenchUiOptions(controllers: Controllers, deps: Workbenc
       if (event.phase === 'down') host.activeSession()?.clearMotionGhost();
       return pointerRouter.handlePointer(event);
     },
-    onPaste: (bytes: Uint8Array) => inputRouter.handlePaste(bytes),
+    onPaste: (bytes: Uint8Array) => inputRouter.handlePaste(bytes), onClipboardPaste: () => pasteClipboard(deps.clipboard, (bytes) => inputRouter.handlePaste(bytes)),
     onPointerCancel: (reason) => pointerRouter.handlePointerCancel(reason),
     onFrame: () => {
       overlayFeature.syncOutline();

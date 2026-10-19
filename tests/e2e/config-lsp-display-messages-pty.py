@@ -96,7 +96,7 @@ with tempfile.TemporaryDirectory(prefix="xi-lsp-display-messages-pty-") as tempo
             raise SystemExit(f"configured LSP window message was not displayed: {captured[-4000:]!r}")
         if not any(item.get("message") == "configured progress" for item in progress):
             raise SystemExit(f"configured LSP progress message was not displayed: {captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

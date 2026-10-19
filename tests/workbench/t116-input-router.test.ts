@@ -105,6 +105,8 @@ class FakeHost {
   session: FakeVimSession | undefined;
   sessions = new Map<string, FakeVimSession>();
   activeSession(): FakeVimSession | undefined { return this.session; }
+  readonly commandHistory = { ex: [] as string[], search: [] as string[] };
+  cmdlineWindowOf(): undefined { return undefined; }
 }
 
 class FakeSession {

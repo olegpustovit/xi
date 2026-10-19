@@ -97,7 +97,7 @@ with tempfile.TemporaryDirectory(prefix="xi-config-document-highlight-pty-") as 
         matches = [json.loads(match.group(1)) for match in HIGHLIGHTS.finditer(captured)]
         if not matches or matches[-1].get("count") != 1 or matches[-1].get("ranges") != [{"startLine": 0, "startUtf16": 6, "endLine": 0, "endUtf16": 11}]:
             raise SystemExit(f"production document highlights were not requested/rendered: {matches!r}; output={captured[-7000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

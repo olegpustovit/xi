@@ -121,10 +121,12 @@ export class ExCommandLineSession {
       case 'Escape': return { kind: 'cancel', source: this.#source };
       case 'ArrowUp': this.moveSelection(-1); return { kind: 'changed', source: this.#source, cursorOffset: this.#cursorOffset };
       case 'ArrowDown': this.moveSelection(1); return { kind: 'changed', source: this.#source, cursorOffset: this.#cursorOffset };
-      case 'ArrowLeft': this.#cursorOffset = Math.max(0, this.#cursorOffset - 1); return { kind: 'changed', source: this.#source, cursorOffset: this.#cursorOffset };
+      case 'ArrowLeft': this.#cursorOffset = Math.max(this.#source.startsWith(':') ? 1 : 0, this.#cursorOffset - 1); return { kind: 'changed', source: this.#source, cursorOffset: this.#cursorOffset };
       case 'ArrowRight': this.#cursorOffset = Math.min(this.#source.length, this.#cursorOffset + 1); return { kind: 'changed', source: this.#source, cursorOffset: this.#cursorOffset };
       case 'Backspace':
-        if (this.#cursorOffset > 0) { this.#source = `${this.#source.slice(0, this.#cursorOffset - 1)}${this.#source.slice(this.#cursorOffset)}`; this.#cursorOffset -= 1; }
+        // Backspacing an empty command line leaves it, as in Vim.
+        if (this.#source === ':') return { kind: 'cancel', source: this.#source };
+        if (this.#cursorOffset > (this.#source.startsWith(':') ? 1 : 0)) { this.#source = `${this.#source.slice(0, this.#cursorOffset - 1)}${this.#source.slice(this.#cursorOffset)}`; this.#cursorOffset -= 1; }
         this.#selectedIndex = 0;
         this.#pathCandidates = undefined;
         return { kind: 'changed', source: this.#source, cursorOffset: this.#cursorOffset };
@@ -134,6 +136,15 @@ export class ExCommandLineSession {
         this.#pathCandidates = undefined;
         return { kind: 'changed', source: this.#source, cursorOffset: this.#cursorOffset };
     }
+  }
+
+  /** Replaces the whole source (history recall, word/line deletion); the leading ':' stays the caller's. */
+  replace(source: string, cursorOffset: number): ExCommandLineResult {
+    this.#source = source;
+    this.#cursorOffset = Math.max(0, Math.min(source.length, cursorOffset));
+    this.#selectedIndex = 0;
+    this.#pathCandidates = undefined;
+    return { kind: 'changed', source: this.#source, cursorOffset: this.#cursorOffset };
   }
 
   dispose(): void { this.#disposed = true; }

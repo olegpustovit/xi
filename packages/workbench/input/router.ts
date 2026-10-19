@@ -46,6 +46,7 @@ export type RouterPickerMode = 'file' | 'buffer' | 'command' | 'theme' | 'config
 export interface RouterPickerPort {
   readonly isOpen: boolean;
   readonly mode?: RouterPickerMode;
+  handlePaste?(bytes: Uint8Array): void;
   toggleIncludeHidden?(): void;
   toggleIncludeIgnored?(): void;
   close(cancelPreview: boolean): Promise<void>;
@@ -683,6 +684,12 @@ export class WorkbenchInputRouter implements Disposable {
       }
       return false;
     }
+    const cmdlineWindow = host.cmdlineWindowOf(session.activeViewId);
+    if (cmdlineWindow !== undefined && session.activeViewId !== undefined && !active.commandLineActive && active.prefixHelp.pendingKeys.length === 0) {
+      const name = event.name.toLowerCase();
+      if (name === 'enter' || name === 'return' || event.raw === '\r') return this.#runCmdlineWindowLine(cmdlineWindow, session.activeViewId);
+      if (event.ctrl && name === 'c') { this.#closeCmdlineWindow(cmdlineWindow, session.activeViewId); return true; }
+    }
     const pathCompletion = completion.isPathCompletionTrigger?.(event, activeMode) === true;
     const autoCompletion = !pathCompletion && completion.isAutoCompletionTrigger?.(event, activeMode) === true;
     const autoSignature = completion.isAutoSignatureTrigger(event, activeMode);
@@ -713,12 +720,28 @@ export class WorkbenchInputRouter implements Disposable {
     if (this.#options.explorer.isOpen) { this.#options.explorer.handlePaste?.(bytes); return; }
     if (this.#options.overlayGitDiff?.isReadOnly?.() === true || this.#gitPanelFocused) return;
     const { explorer, search, problems, overlays, picker, host } = this.#options;
-    // Pasting while a text-input overlay/panel is focused is not handled here.
-    if (explorer.isOpen || search.isOpen || problems.isProblemsOpen || overlays.isOutlineOpen || picker.isOpen || this.#leaderPending) return;
+    if (search.isOpen) { search.handlePaste?.(bytes); return; }
+    if (picker.isOpen) { picker.handlePaste?.(bytes); return; }
+    if (problems.isProblemsOpen || overlays.isOutlineOpen || this.#leaderPending) return;
     const active = host.activeSession();
-    if (active?.commandLineActive === true) return;
+    if (active?.commandLineActive === true || this.#commandLineWithoutSession) { void this.#pasteIntoCommandLine(bytes, active); return; }
     active?.handlePaste(bytes);
     this.#options.marker('XI_PASTE', { length: bytes.length });
+  }
+
+  /** Cmd+V / bracketed paste into `:`, `/` or `?`: the first line, inserted as typed text. */
+  async #pasteIntoCommandLine(bytes: Uint8Array, active: ReturnType<BufferHost['activeSession']>): Promise<void> {
+    const text = new TextDecoder().decode(bytes).split(/\r\n?|\n/u)[0] ?? '';
+    if (text.length === 0) return;
+    if (this.#searchPromptModel !== undefined) {
+      for (const ch of text) await active?.handleKey(keyEvent(ch, { name: ch, shift: false, option: false, ctrl: false, meta: false }));
+      return;
+    }
+    const line = this.#exCommandLineSession;
+    if (line === undefined) return;
+    const result = line.handleInput({ kind: 'text', text });
+    if (active !== undefined) active.setCommandLineSource(result.source, 'cursorOffset' in result ? result.cursorOffset : result.source.length);
+    else this.#publishCommandLine();
   }
 
   focusEditor(): void { this.#gitPanelFocused = false; }
@@ -944,6 +967,91 @@ export class WorkbenchInputRouter implements Disposable {
     return true;
   }
 
+  #exHistoryCursor: { readonly index: number; readonly prefix: string } | undefined;
+  #exLiteralPending = false;
+
+  #closeCmdlineWindow(window: { readonly origin: ViewId }, viewId: ViewId): void {
+    this.#options.host.closeView(viewId, true);
+    this.#options.session.focus(window.origin);
+    this.#options.host.notifySurfaceChange();
+  }
+
+  /** Enter in a cmdline window runs the cursor line against the window it was opened from, then closes the window. */
+  async #runCmdlineWindowLine(window: { readonly kind: 'ex' | 'search-forward' | 'search-backward'; readonly origin: ViewId }, viewId: ViewId): Promise<boolean | 'quit'> {
+    const text = this.#options.host.lineTextAtCursor(viewId) ?? '';
+    this.#closeCmdlineWindow(window, viewId);
+    if (text.length === 0) return true;
+    if (window.kind !== 'ex') return await this.#options.host.sessions.get(window.origin)?.submitSearchText(window.kind === 'search-forward' ? 'forward' : 'backward', text) ?? true;
+    for (const key of [':', ...text, '\r']) {
+      const outcome = await this.dispatchKey(key === '\r' ? keyEvent('\r', { name: 'return', shift: false, option: false, ctrl: false, meta: false }) : keyEvent(key, { name: key, shift: false, option: false, ctrl: false, meta: false }));
+      if (outcome === 'quit') return 'quit';
+    }
+    return true;
+  }
+  #exRegisterPending = false;
+
+  #rememberExHistory(source: string): void {
+    const entry = source.startsWith(':') ? source.slice(1) : source;
+    const history = this.#options.host.commandHistory.ex;
+    if (entry.length > 0) {
+      const old = history.indexOf(entry);
+      if (old >= 0) history.splice(old, 1);
+      history.push(entry);
+      if (history.length > 100) history.splice(0, history.length - 100);
+    }
+    this.#exHistoryCursor = undefined;
+  }
+
+  /** nvim cmdline editing for `:` -- <Home>/<End>, <C-b>/<C-e>, <C-w>, <C-u>, <C-v>, <Up>/<Down>/<C-p>/<C-n> history. */
+  #editExLine(line: ExCommandLineSession, event: OwnedVimKeyEvent): ReturnType<ExCommandLineSession['handleInput']> | undefined {
+    const name = event.name.toLowerCase();
+    const letter = event.ctrl ? name : '';
+    const source = line.source;
+    const at = Math.max(1, line.cursorOffset);
+    if (this.#exLiteralPending) {
+      this.#exLiteralPending = false;
+      const text = name === 'tab' ? '\t' : event.raw.length === 1 ? event.raw : undefined;
+      return text === undefined ? line.replace(source, line.cursorOffset) : line.handleInput({ kind: 'text', text });
+    }
+    if (this.#exRegisterPending) {
+      this.#exRegisterPending = false;
+      const text = this.#options.host.activeSession()?.commandLineRegisterText(event.raw.length === 1 ? event.raw : name, letter === 'w') ?? '';
+      return text.length === 0 ? line.replace(source, line.cursorOffset) : line.handleInput({ kind: 'text', text });
+    }
+    if (letter === 'r') { this.#exRegisterPending = true; return line.replace(source, line.cursorOffset); }
+    if (letter === 'f') {
+      const active = this.#options.host.activeSession();
+      const text = source.slice(1);
+      if (active === undefined) return line.replace(source, line.cursorOffset);
+      active.openCmdlineWindow('ex', text);
+      void active.handleKey(keyEvent('\x1b', { name: 'escape', shift: false, option: false, ctrl: false, meta: false }));
+      return line.replace(source, line.cursorOffset);
+    }
+    if (letter === 'v' || letter === 'q') { this.#exLiteralPending = true; return line.replace(source, line.cursorOffset); }
+    if (name === 'home' || letter === 'b') return line.replace(source, 1);
+    if (name === 'end' || letter === 'e') return line.replace(source, source.length);
+    if (letter === 'u') return line.replace(`:${source.slice(at)}`, 1);
+    if (letter === 'w') {
+      const head = source.slice(1, at).replace(/(?:[\p{L}\p{N}_]+|[^\s\p{L}\p{N}_]+)?\s*$/u, '');
+      return line.replace(`:${head}${source.slice(at)}`, 1 + head.length);
+    }
+    const older = name === 'up' || name === 'arrowup' || letter === 'p';
+    if (older || name === 'down' || name === 'arrowdown' || letter === 'n') {
+      const prefix = this.#exHistoryCursor?.prefix ?? (letter === '' ? source.slice(1) : '');
+      let index = this.#exHistoryCursor?.index ?? this.#options.host.commandHistory.ex.length;
+      for (;;) {
+        index += older ? -1 : 1;
+        if (index < 0) return line.replace(source, line.cursorOffset);
+        if (index >= this.#options.host.commandHistory.ex.length) { this.#exHistoryCursor = undefined; return line.replace(`:${prefix}`, prefix.length + 1); }
+        if (this.#options.host.commandHistory.ex[index]!.startsWith(prefix)) break;
+      }
+      this.#exHistoryCursor = { index, prefix };
+      return line.replace(`:${this.#options.host.commandHistory.ex[index]!}`, this.#options.host.commandHistory.ex[index]!.length + 1);
+    }
+    this.#exHistoryCursor = undefined;
+    return undefined;
+  }
+
   async handleCommandLineKeypress(event: OwnedVimKeyEvent): Promise<boolean | 'quit'> {
     const active = this.#options.host.activeSession();
     if (active === undefined && !this.#commandLineWithoutSession) return false;
@@ -954,10 +1062,12 @@ export class WorkbenchInputRouter implements Disposable {
     }
     const line = this.#exCommandLineSession;
     if (line === undefined) return false;
-    const input = toExCommandLineInput(event);
-    if (input === undefined) return true;
-    if (input.kind === 'key' && input.key === 'Tab') await this.#exPathPending;
-    const result = line.handleInput(input);
+    const edited = this.#editExLine(line, event);
+    const input = edited === undefined ? toExCommandLineInput(event) : undefined;
+    if (edited === undefined && input === undefined) return true;
+    if (input?.kind === 'key' && input.key === 'Tab') await this.#exPathPending;
+    const result = edited ?? line.handleInput(input!);
+    if (result.kind === 'execute' || result.kind === 'error') this.#rememberExHistory(result.source);
     if (result.kind === 'cancel') {
       if (active !== undefined) await active.handleKey(event);
       else this.#closeStandaloneCommandLine();
@@ -1076,10 +1186,11 @@ function toExCommandLineInput(event: OwnedVimKeyEvent): ExCommandLineInput | und
   if (name === 'escape' || event.raw === '') return { kind: 'key', key: 'Escape' };
   if (name === 'backspace') return { kind: 'key', key: 'Backspace' };
   if (name === 'delete') return { kind: 'key', key: 'Delete' };
-  if (name === 'arrowleft') return { kind: 'key', key: 'ArrowLeft' };
-  if (name === 'arrowright') return { kind: 'key', key: 'ArrowRight' };
-  if (name === 'arrowup') return { kind: 'key', key: 'ArrowUp' };
-  if (name === 'arrowdown') return { kind: 'key', key: 'ArrowDown' };
+  if (event.ctrl && name === 'c') return { kind: 'key', key: 'Escape' };
+  if (name === 'arrowleft' || name === 'left') return { kind: 'key', key: 'ArrowLeft' };
+  if (name === 'arrowright' || name === 'right') return { kind: 'key', key: 'ArrowRight' };
+  if (name === 'arrowup' || name === 'up') return { kind: 'key', key: 'ArrowUp' };
+  if (name === 'arrowdown' || name === 'down') return { kind: 'key', key: 'ArrowDown' };
   if (!event.ctrl && !event.meta && !event.option) {
     const text = event.raw.length === 0 && name === 'space' ? ' ' : event.raw;
     if (text.length === 1) return { kind: 'text', text };

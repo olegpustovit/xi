@@ -97,7 +97,7 @@ with tempfile.TemporaryDirectory(prefix="xi-config-color-swatches-pty-") as temp
         matches = [json.loads(match.group(1)) for match in COLORS.finditer(captured)]
         if not matches or matches[-1].get("count") != 1 or matches[-1].get("colors") != ["#ff8800"]:
             raise SystemExit(f"production color swatches were not requested/rendered: {matches!r}; output={captured[-7000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

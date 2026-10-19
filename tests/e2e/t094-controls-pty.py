@@ -67,7 +67,7 @@ with tempfile.TemporaryDirectory(prefix="xi-t094-controls-") as temporary:
         for _ in range(3):
             os.write(master, b"\x1b")
             read_for(master, captured, 0.15)
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         try:
             child.wait(timeout=5)
         except subprocess.TimeoutExpired as error:

@@ -63,7 +63,7 @@ def run_case(value: str, row: int) -> None:
                 raise SystemExit(f"bufferline={value} rendered the first line at an unexpected row: {screen.row_text(row)!r}")
             if value == "always" and "bufferline.txt" not in screen.row_text(1):
                 raise SystemExit(f"bufferline=always did not render a tab strip: {screen.row_text(1)!r}")
-            os.write(master, b"q")
+            os.write(master, b":q\r")
             child.wait(timeout=5)
         finally:
             if child.poll() is None:

@@ -134,7 +134,8 @@ assert.equal(offsetSearch.ok, true);
 if (!offsetSearch.ok) throw new Error('T027-SEARCH-OFFSET');
 assert.equal(offsetSearch.value.outcome.kind, 'found');
 if (offsetSearch.value.outcome.kind !== 'found') throw new Error('T027-SEARCH-OFFSET-NOT-FOUND');
-assert.equal(offsetSearch.value.outcome.match.cursor, 8, 'T027-SEARCH-OFFSET-01 lands on the match end');
+// nvim 0.12.4: `/foo/e` from 1:1 on 'foo x foo' lands on 1:3 (the end of the match under/after the cursor), not on the second foo.
+assert.equal(offsetSearch.value.outcome.match.cursor, 2, 'T027-SEARCH-OFFSET-01 lands on the match end');
 const operatorSearch = searchVimOperator(snapshot, view, EMPTY_VIM_SEARCH_STATE, { command: 'search', pattern: 'foo', direction: 'forward', wrapscan: false });
 assert.equal(operatorSearch.ok, true, 'T027-SEARCH-OPERATOR-01 resolves a search target for operator composition');
 if (!operatorSearch.ok) throw new Error('T027-SEARCH-OPERATOR-01');

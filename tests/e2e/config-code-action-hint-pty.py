@@ -106,7 +106,7 @@ with tempfile.TemporaryDirectory(prefix="xi-config-code-action-hint-pty-") as te
         matches = [json.loads(match.group(1)) for match in HINTS.finditer(diagnostics)]
         if not matches or matches[-1].get("count") != 1 or "C:1" not in screen.row_text(24) or not screen.row_text(1).startswith("Cconst"):
             raise SystemExit(f"production code-action hints were not requested/rendered: {matches!r}; status={screen.row_text(24)!r}; row={screen.row_text(1)!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

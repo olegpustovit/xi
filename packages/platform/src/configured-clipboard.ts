@@ -30,9 +30,17 @@ export function createConfiguredClipboardPort(
 /** Headless/SSH hosts have no native clipboard; writes then reach the user's terminal via OSC52. */
 function withTermcodeFallback(builtin: ClipboardPort, termcode: ClipboardPort): ClipboardPort & Disposable {
   if (builtin === termcode) return builtin as ClipboardPort & Disposable;
+  // Over ssh/mosh the "native" clipboard is the remote host's (or reports success without reaching
+  // the user's machine), so the terminal sequence is always sent there, as Neovim's osc52 provider does.
+  const remote = process.env['SSH_CONNECTION'] !== undefined || process.env['SSH_TTY'] !== undefined || process.env['MOSH_CONNECTION'] !== undefined
+    // tmux's environment goes stale when a session is reattached over ssh/mosh, so inside tmux always also reach the client terminal.
+    || process.env['TMUX'] !== undefined;
   const write = async (native: Promise<Result<void, PlatformFailure>>, fallback: () => Promise<Result<void, PlatformFailure>>) => {
     const result = await native;
-    return result.ok || result.error.code === 'cancelled' ? result : fallback();
+    if (result.ok && !remote) return result;
+    if (!result.ok && result.error.code === 'cancelled') return result;
+    const sent = await fallback();
+    return sent.ok || !result.ok ? sent : result;
   };
   return {
     readText: cancellation => builtin.readText(cancellation),

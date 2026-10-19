@@ -130,6 +130,9 @@ function copyDependencyLicenses(outputDirectory: string, audit: PackageAuditOutp
     '@tree-sitter-grammars/tree-sitter-toml',
     'undici-types',
   ];
+  const swiftLicenses = join(licensesDirectory, 'tree-sitter-swift');
+  mkdirSync(swiftLicenses, { recursive: true });
+  cpSync(join(root, 'vendor', 'tree-sitter-swift', 'LICENSE'), join(swiftLicenses, 'LICENSE'));
   for (const packageName of packageNames) {
     const packageDirectory = join(root, 'node_modules', ...packageName.split('/'));
     const manifestPath = join(packageDirectory, 'package.json');

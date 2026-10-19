@@ -58,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix="xi-unknown-config-pty-") as temporary:
             raise SystemExit(f"Xi did not survive the invalid config\n{captured[-4000:]!r}")
         if b"unknown configuration key editor.unknown-setting" not in captured:
             raise SystemExit(f"Xi did not report the unknown field\n{captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

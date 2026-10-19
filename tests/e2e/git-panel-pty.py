@@ -103,7 +103,7 @@ with tempfile.TemporaryDirectory(prefix="xi-git-panel-") as temporary:
             raise SystemExit("clicking a Git file closed the Git panel")
         # Opening focuses the first change in the comparison. q closes the read-only
         # index view and returns focus to Git without touching the working file.
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         read_until(master, captured, b"XI_GIT_DIFF_CLOSED", 5)
 
         # Selection defaults to the first data row (staged.ts's alpha.ts); two `j` presses

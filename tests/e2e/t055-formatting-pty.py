@@ -98,7 +98,7 @@ with tempfile.TemporaryDirectory(prefix="xi-t055-format-") as temporary:
             raise SystemExit(f"T055 concurrent save lost input: {success_path.read_text(encoding='utf-8')!r}")
         if b"XI_FORMAT_APPLIED" not in captured:
             raise SystemExit("T055 successful format did not report an applied formatter result")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         read_for(master, captured, 2)
     finally:
         if child.poll() is None:

@@ -79,6 +79,11 @@ export interface VimSearchMatch {
   readonly pattern: string;
   readonly direction: VimSearchDirection;
   readonly wrapped: boolean;
+  /** 1-based position of this match among all `total` matches of the pattern (Vim's `[i/N]`). */
+  readonly index: number;
+  readonly total: number;
+  /** Every match of the pattern in the searched snapshot, sorted by start (for hlsearch). */
+  readonly matches: readonly { readonly start: Utf16Offset; readonly end: Utf16Offset }[];
   readonly captures: ReadonlyMap<number, { readonly start: Utf16Offset; readonly end: Utf16Offset }>;
 }
 
@@ -616,6 +621,10 @@ function selectOutcome(
 ): Result<VimSearchOutcome, VimSearchFailure> {
   const count = request.count ?? 1;
   const candidates = matches.filter((match) => !fullWord || isWholeWordMatch(snapshot, match));
+  // Vim's SEARCH_END: with an end offset a match qualifies by where its last character is, not where it starts.
+  const keyOf = (match: PatternMatch): number => offset?.kind === 'end'
+    ? (match.end > match.start ? lastCodePointStart(snapshot, match.start as number, match.end as number) : match.start as number)
+    : match.start as number;
   let position = initialView.cursor as number;
   // Per-iteration, not global: a `{count}n` where the file has exactly one match
   // wraps around and lands on it again for every one of `count` iterations (nvim
@@ -636,26 +645,26 @@ function selectOutcome(
   });
   for (let iteration = 0; iteration < count; iteration += 1) {
     let iterationWrapped = false;
-    const found = nextCandidate(candidates, position, direction);
+    const found = nextCandidate(candidates, position, direction, keyOf);
     if (found === undefined) {
       if (request.wrapscan === false) {
         return { ok: true, value: { kind: 'no-match', reason: 'no-wrap', view: initialView, state: noMatchState() } };
       }
       iterationWrapped = true;
       position = direction === 'forward' ? -1 : snapshot.lengthUtf16 + 1;
-      const wrappedFound = nextCandidate(candidates, position, direction);
+      const wrappedFound = nextCandidate(candidates, position, direction, keyOf);
       if (wrappedFound === undefined) {
         return { ok: true, value: { kind: 'no-match', reason: 'target-not-found', view: initialView, state: noMatchState() } };
       }
       chosen = wrappedFound;
     } else chosen = found;
-    wrapped = iterationWrapped;
-    position = direction === 'forward'
+    wrapped = wrapped || iterationWrapped;
+    position = offset?.kind === 'end' ? keyOf(chosen) : direction === 'forward'
       ? advanceAfterMatch(snapshot, chosen, direction)
       : (chosen.start as number);
   }
   if (chosen === undefined) return { ok: false, error: { kind: 'no-match', pattern } };
-  const searchMatch = toSearchMatch(snapshotMatch(chosen), pattern, direction, wrapped, offsetForMatch(snapshot, chosen, offset));
+  const searchMatch = toSearchMatch(snapshotMatch(chosen), pattern, direction, wrapped, offsetForMatch(snapshot, chosen, offset), candidates);
   const nextState: VimSearchState = Object.freeze({
     pattern,
     direction: persistDirection,
@@ -668,11 +677,11 @@ function selectOutcome(
   return { ok: true, value: { kind: 'found', match: searchMatch, view: nextView, state: nextState } };
 }
 
-function nextCandidate(matches: readonly PatternMatch[], position: number, direction: VimSearchDirection): PatternMatch | undefined {
-  if (direction === 'forward') return matches.find((match) => (match.start as number) > position);
+function nextCandidate(matches: readonly PatternMatch[], position: number, direction: VimSearchDirection, keyOf: (match: PatternMatch) => number): PatternMatch | undefined {
+  if (direction === 'forward') return matches.find((match) => keyOf(match) > position);
   let found: PatternMatch | undefined;
   for (const match of matches) {
-    if ((match.start as number) < position) found = match;
+    if (keyOf(match) < position) found = match;
     else break;
   }
   return found;
@@ -851,10 +860,11 @@ function toSearchMatch(
   direction: VimSearchDirection,
   wrapped: boolean,
   cursor: number,
+  candidates: readonly PatternMatch[] = [],
 ): VimSearchMatch {
   const captures = new Map<number, { readonly start: Utf16Offset; readonly end: Utf16Offset }>();
   for (const [group, capture] of match.captures) captures.set(group, Object.freeze({ start: capture.start, end: capture.end }));
-  return Object.freeze({ start: match.start, end: match.end, consumedStart: match.consumedStart, consumedEnd: match.consumedEnd, cursor: cursor as Utf16Offset, pattern, direction, wrapped, captures });
+  return Object.freeze({ start: match.start, end: match.end, consumedStart: match.consumedStart, consumedEnd: match.consumedEnd, cursor: cursor as Utf16Offset, pattern, direction, wrapped, index: candidates.reduce((count, candidate) => count + ((candidate.start as number) <= cursor ? 1 : 0), 0), total: candidates.length, matches: candidates, captures });
 }
 
 function snapshotMatch(match: PatternMatch): PatternMatch { return match; }

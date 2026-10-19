@@ -59,7 +59,7 @@ with tempfile.TemporaryDirectory(prefix="xi-t039-picker-") as temporary:
         wait_for(master, captured, b"XI_PICKER_CANCELLED", 5)
         if b'"activeViewId":"xi-launch-view"' not in captured:
             raise SystemExit("picker cancel did not restore the original view")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

@@ -95,9 +95,9 @@ def main() -> None:
         )
         # Normal-mode Ctrl-C is an interrupt in Vim semantics, not quit (the workbench, not
         # the UI adapter, decides quit); exercise the Ex `:q` quit path instead of `\x03`.
-        quit_capture = launch(binary, source, environment, b"q")
+        quit_capture = launch(binary, source, environment, b":q\r")
         ex_quit_capture = launch(binary, source, environment, b":q\r")
-        resized_capture = launch(binary, source, environment, b"q", resizes=((60, 18), (120, 40)))
+        resized_capture = launch(binary, source, environment, b":q\r", resizes=((60, 18), (120, 40)))
         for label, captured in (("q", quit_capture), (":q", ex_quit_capture), ("resize", resized_capture)):
             # The line:2 cursor paints over the first glyph, so the raw PTY
             # transcript may contain `econd` instead of the full word.

@@ -72,7 +72,7 @@ def run_case(config_source: str, label: str) -> None:
                     break
             else:
                 raise SystemExit(f"{label} end-of-line diagnostic did not render below the source line: rows={[screen.row_text(index) for index in range(1, 3)]!r}; diagnostics={diagnostics[-1000:]!r}")
-            os.write(master, b"q")
+            os.write(master, b":q\r")
             child.wait(timeout=10)
         finally:
             if child.poll() is None:

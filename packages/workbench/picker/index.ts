@@ -176,6 +176,14 @@ export class PickerController<TEntry extends WorkbenchPickerEntry = WorkbenchPic
     }
   }
 
+  /** Cmd+V / bracketed paste into the query field (first line only, like a single-line prompt). */
+  handlePaste(bytes: Uint8Array): void {
+    const text = new TextDecoder().decode(bytes).split(/\r\n?|\n/u)[0] ?? '';
+    if (text.length === 0) return;
+    this.#query += text;
+    this.#runQuery();
+  }
+
   async activateEntry(entry: TEntry): Promise<void> {
     if (entry.mode === 'diagnostic') {
       await this.close(false);

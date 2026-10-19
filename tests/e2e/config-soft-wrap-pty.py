@@ -73,7 +73,7 @@ with tempfile.TemporaryDirectory(prefix="xi-soft-wrap-pty-") as temporary:
         screen.feed(captured)
         if f"↪  {TEXT[33:]}" not in screen.row_text(2):
             raise SystemExit(f"Space+w did not restore wrapping: {screen.row_text(2)!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         child.wait(timeout=5)
     finally:
         if child.poll() is None:

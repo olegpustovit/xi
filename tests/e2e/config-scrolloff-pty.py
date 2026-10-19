@@ -82,7 +82,7 @@ with tempfile.TemporaryDirectory(prefix="xi-scrolloff-pty-") as temporary:
         expected = max(0, 14 - height + bottom + 1)
         if anchor["scrollTop"] != expected:
             raise SystemExit(f"unexpected scrolloff anchor: height={height} expected={expected} anchor={anchor!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         process.wait(timeout=5)
     finally:
         if process.poll() is None:

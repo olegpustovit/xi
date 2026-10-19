@@ -137,14 +137,37 @@ export function createOpenTuiClipboardPort(): ClipboardPort & Disposable {
   };
 }
 
+async function tmuxLoadBuffer(text: string): Promise<boolean> {
+  try {
+    const child = Bun.spawn(['tmux', 'load-buffer', '-w', '-'], { stdin: 'pipe', stdout: 'ignore', stderr: 'ignore' });
+    child.stdin.write(text);
+    await child.stdin.end();
+    return (await child.exited) === 0;
+  } catch { return false; }
+}
+
 /** Emits Helix's OSC52 clipboard writes; terminal reads are intentionally unsupported. */
 export function createOpenTuiTermcodeClipboardPort(): ClipboardPort & Disposable {
   const write = async (text: string, selection: 'clipboard' | 'primary', cancellation: CancellationToken): Promise<Result<void, PlatformFailure>> => {
     if (cancellation.isCancelled) return { ok: false, error: { code: 'cancelled', message: 'clipboard write was cancelled', retryable: false } };
     try {
-      const osc52 = `\u001b]52;${selection === 'primary' ? 'p' : 'c'};${Buffer.from(text, 'utf8').toString('base64')}\u0007`;
-      // tmux only forwards OSC52 it did not originate through its DCS passthrough (ESC doubled inside).
-      process.stdout.write(process.env['TMUX'] === undefined ? osc52 : `\u001bPtmux;${osc52.replaceAll('\u001b', '\u001b\u001b')}\u001b\\`);
+      const encoded = Buffer.from(text, 'utf8').toString('base64');
+      const osc52 = `\u001b]52;${selection === 'primary' ? 'p' : 'c'};${encoded}\u0007`;
+      // Inside tmux do both: `load-buffer -w` fills the tmux buffer and makes tmux emit its own OSC52
+      // (empty selection field, which mosh drops), and the DCS passthrough (needs allow-passthrough)
+      // makes tmux re-emit our explicit `c` OSC52, the only selection mosh forwards.
+      if (process.env['TMUX'] !== undefined) {
+        const loaded = tmuxLoadBuffer(text);
+        process.stdout.write(`\u001bPtmux;${osc52.replaceAll('\u001b', '\u001b\u001b')}\u001b\\`);
+        await loaded;
+        return { ok: true, value: undefined };
+      }
+      if ((process.env['TERM'] ?? '').startsWith('screen')) {
+        // GNU screen: DCS passthrough, split so no chunk exceeds its 768-byte limit.
+        for (let i = 0; i < osc52.length; i += 500) process.stdout.write(`\u001bP${osc52.slice(i, i + 500)}\u001b\\`);
+        return { ok: true, value: undefined };
+      }
+      process.stdout.write(osc52);
       return { ok: true, value: undefined };
     } catch (error: unknown) {
       return clipboardFailure(error instanceof Error ? error.message : String(error));
@@ -354,6 +377,11 @@ export async function runOpenTuiWorkbench(
   renderer.keyInput.on('keypress', (incoming: KeyEvent) => {
     const split = splitCoalescedEscape(incoming);
     for (const event of split ?? [incoming]) {
+      // Cmd+V reported as a key (kitty protocol) instead of a bracketed paste: read the clipboard.
+      if (event.super === true && !event.ctrl && !event.meta && event.name.toLowerCase() === 'v' && options.onClipboardPaste !== undefined) {
+        options.onClipboardPaste();
+        continue;
+      }
       if (event.name.toLowerCase() === 'escape' || event.name === 'ESC') {
         viewport.cancelPointerCapture();
         options.onPointerCancel?.('escape');

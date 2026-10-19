@@ -11,6 +11,7 @@ For another language, add a `[[language]]` entry with its `name` and `file-types
 | Python | `.py`, `.pyi` | Yes | `pyright-langserver` | Configure one |
 | Ruby | `.rb`, `.rake`, `.gemspec`, common Ruby filenames | Yes | `ruby-lsp` | `rubocop --fix-layout` |
 | OCaml | `.ml`, `.mli` | Yes, separate implementation/interface grammars | `ocamllsp` | `ocamlformat` |
+| Swift | `.swift` | Yes | `sourcekit-lsp` | Configure one |
 | JSON | `.json`, `.jsonc` | Yes | Configure one | Configure one |
 | TOML | `.toml` | Yes | Configure one | Configure one |
 | Markdown | `.md`, `.markdown` | Block grammar | Configure one | Configure one |

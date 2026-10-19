@@ -75,7 +75,7 @@ with tempfile.TemporaryDirectory(prefix="xi-auto-save-focus-pty-") as temporary:
             raise SystemExit(f"focus-lost auto-save did not persist the edit: {source.read_text(encoding='utf-8')!r} output={captured[-4000:]!r}")
         if b'XI_AUTO_SAVE_FOCUS {"focused":false,"enabled":true}' not in captured:
             raise SystemExit(f"focus-lost event was not observed\n{captured[-4000:]!r}")
-        os.write(master, b"q")
+        os.write(master, b":q\r")
         read_for(master, captured, 0.5)
     finally:
         if child.poll() is None:
