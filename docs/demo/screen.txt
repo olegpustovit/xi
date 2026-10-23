@@ -1,0 +1,30 @@
+    1  const greeting = "Hello, example";                                                                     
+    2  console.log(greeting);                                                                                 
+    3  // Edited in a real Xi terminal                                                                        
+    4                                                                                                         
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+                                                                                                              
+  NOR  /tmp/repo-unslop-xi-fixture/example.ts [+]                                             1 sel  "  3:31  

@@ -1,0 +1,5 @@
+# Offline example: no external formatter is required to save this fixture.
+theme = "xi-light"
+
+[editor]
+auto-format = false

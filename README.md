@@ -1,58 +1,65 @@
 # Xi
 
-Read the [Xi website](https://olegpustovit.github.io/xi/) for installation, language support,
-themes, keys and configuration.
+A terminal code editor with Vim-style editing, multiple selections and optional language-server, Git and filesystem tools. It has its own editing engine and runs on Bun and OpenTUI.
 
-Xi is a keyboard-first terminal code editor built with Bun, strict TypeScript and
-OpenTUI. It owns its Vim engine and combines multiple cursors, LSP, Git, filesystem tools,
-tasks, mouse interaction and a restrained terminal UI.
+![The real Xi editor showing edits to a fictional TypeScript file](docs/demo/editor.png)
 
-Use Bun 1.4.2 or newer. Run the editor directly from source without building a binary:
+The capture is an actual PTY session. The sample configuration disables automatic formatting because Biome was not installed. [Capture commands and limits](docs/demo/README.md).
 
-```sh
-bun run apps/xi/src/main.ts path/to/file
-```
+## Try it from source
+
+Use Bun 1.4.2 or newer within the supported 1.x range, plus Git:
 
 ```sh
-bun install --frozen-lockfile
-bun run xi -- path/to/file
-bun run xi -- --tutor
-```
-
-Initialize submodules before the first install:
-
-```sh
+git clone https://github.com/olegpustovit/xi.git
+cd xi
 git submodule update --init --recursive
+bun install --frozen-lockfile
+cp docs/demo/example.ts /tmp/xi-example.ts
+bun run apps/xi/src/main.ts -c docs/demo/config.toml /tmp/xi-example.ts
 ```
 
-The active scope is [Helix-compatible configuration](docs/configuration.md). The
-[machine-readable ledger](docs/configuration-ledger.json) tracks every stable key, master
-addition and Xi extension; validate it with `bun run check:config-ledger`. Xi retains its
-Neovim editing model while matching Helix multi-selection semantics 1:1. Historical
-milestone plans, per-ticket evidence and
-prototype trees were retired after commit `ab211d5`; Git history remains available when a
-past decision is needed.
+The sample configuration turns off automatic formatting, so saving the example does not require a formatter executable. In the normal TypeScript configuration, saving can invoke Biome; a missing executable blocks that formatted save. Configure or install your desired formatter before enabling it.
 
-Core contracts:
+Use `i` to insert text, Escape to return to normal mode, `:w` to save and `:q` to quit. For the tutorial:
 
-- [Architecture](docs/architecture.md)
-- [Configuration parity](docs/configuration.md)
-- [Testing](docs/testing.md)
-- [Performance](docs/performance.md)
-- [Vim behavior](docs/vim.md)
-- [Installation and packaging](docs/installation/README.md)
+```sh
+bun run apps/xi/src/main.ts -c docs/demo/config.toml --tutor
+```
 
-Common checks:
+The file-edit/save path was checked. The tutorial was not exercised in this capture.
+
+## Build a binary
+
+```sh
+bun run package:build
+./dist/xi -c docs/demo/config.toml /tmp/xi-example.ts
+```
+
+The packaged Linux ARM64 build also passed the edit/save check. [Installation and packaging](docs/installation/README.md) covers releases and other targets; those targets were not qualified here.
+
+The separate development-bundle command, `bun run xi`, failed in this checkout with a relative Tree-sitter WebAssembly asset lookup. Use the direct source or packaged path above for this example. The unresolved bundle issue is recorded in the capture notes.
+
+## Status
+
+The active scope is Helix-compatible configuration, while Neovim remains a development reference for Vim behavior. Complete parity is not established. The checked ledger reports 153 effective settings, 10 incompatible settings and two missing settings, with 1117 of 1141 checks proved. See the [configuration guide](docs/configuration.md) and [machine-readable ledger](docs/configuration-ledger.json) for the individual results.
+
+The contributor contract also keeps the loaded latency comparison open. This documentation capture does not close that performance gate, certify all Vim or multi-selection behavior, or test optional LSP/Git integrations. Neovim and Helix are development references, not required editor subprocesses.
+
+## Development and reference
 
 ```sh
 bun run check
-bun run test:unit
-bun run test:services
-bun run test:ui
-bun run test:e2e -- --suite interaction
-bun run test:vim
 ```
 
-Neovim and Helix are development oracles only and are never required by the shipped
-editor. Product readiness still requires the behavioral and native-speed gates described
-in the contracts above.
+The toolchain, type, public-boundary, configuration-ledger and lint checks passed for this review. No product runtime code was changed. Broader behavioral and performance checks remain separate:
+
+- [Architecture](docs/architecture.md)
+- [Configuration](docs/configuration.md)
+- [Testing](docs/testing.md)
+- [Performance](docs/performance.md)
+- [Vim behavior](docs/vim.md)
+- [Capture details](docs/demo/README.md)
+- [MIT license](LICENSE)
+
+The [website](https://olegpustovit.github.io/xi/) provides the broader user guide.
