@@ -125,6 +125,7 @@ function copyDependencyLicenses(outputDirectory: string, audit: PackageAuditOutp
     'web-tree-sitter',
     'tree-sitter-python',
     'tree-sitter-ruby',
+    'tree-sitter-bash',
     'tree-sitter-json',
     'tree-sitter-ocaml',
     '@tree-sitter-grammars/tree-sitter-toml',

@@ -146,6 +146,16 @@ async function tmuxLoadBuffer(text: string): Promise<boolean> {
   } catch { return false; }
 }
 
+async function writeTmuxClientTty(sequence: string): Promise<boolean> {
+  try {
+    const child = Bun.spawn(['tmux', 'display-message', '-p', '#{client_tty}'], { stdin: 'ignore', stdout: 'pipe', stderr: 'ignore' });
+    const tty = (await new Response(child.stdout).text()).trim();
+    if ((await child.exited) !== 0 || !tty.startsWith('/dev/')) return false;
+    await Bun.write(tty, sequence);
+    return true;
+  } catch { return false; }
+}
+
 /** Emits Helix's OSC52 clipboard writes; terminal reads are intentionally unsupported. */
 export function createOpenTuiTermcodeClipboardPort(): ClipboardPort & Disposable {
   const write = async (text: string, selection: 'clipboard' | 'primary', cancellation: CancellationToken): Promise<Result<void, PlatformFailure>> => {
@@ -153,13 +163,12 @@ export function createOpenTuiTermcodeClipboardPort(): ClipboardPort & Disposable
     try {
       const encoded = Buffer.from(text, 'utf8').toString('base64');
       const osc52 = `\u001b]52;${selection === 'primary' ? 'p' : 'c'};${encoded}\u0007`;
-      // Inside tmux do both: `load-buffer -w` fills the tmux buffer and makes tmux emit its own OSC52
-      // (empty selection field, which mosh drops), and the DCS passthrough (needs allow-passthrough)
-      // makes tmux re-emit our explicit `c` OSC52, the only selection mosh forwards.
+      // Inside tmux, `load-buffer -w` fills the tmux buffer, and the explicit `c` OSC52 (the only
+      // selection mosh forwards) is written straight to the client's tty so it reaches mosh/ssh
+      // whatever tmux's set-clipboard/allow-passthrough say; DCS passthrough is the fallback.
       if (process.env['TMUX'] !== undefined) {
-        const loaded = tmuxLoadBuffer(text);
-        process.stdout.write(`\u001bPtmux;${osc52.replaceAll('\u001b', '\u001b\u001b')}\u001b\\`);
-        await loaded;
+        const [, sent] = await Promise.all([tmuxLoadBuffer(text), writeTmuxClientTty(osc52)]);
+        if (!sent) process.stdout.write(`\u001bPtmux;${osc52.replaceAll('\u001b', '\u001b\u001b')}\u001b\\`);
         return { ok: true, value: undefined };
       }
       if ((process.env['TERM'] ?? '').startsWith('screen')) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prove the embedded Tree-sitter runtime/grammar wasm work inside the compiled binary.
 
-Builds the shipping executable with `bun run package:build`, opens a small real .rb fixture
+Builds the shipping executable with `bun run package:build`, opens small real .rb and .envrc fixtures
 in an isolated PTY (empty HOME/PATH, so no source-tree or system dependency can leak in), and
 waits for an XI_SYNTAX_STATE marker reporting a highlighted parse with classified spans -- the
 grammar and runtime wasm files that `bun build --compile` embeds via `type: "file"` imports
@@ -25,6 +25,11 @@ import time
 
 
 ROOT = Path(__file__).resolve().parents[2]
+# Ruby proves the embedded grammar path; `.envrc` proves a dotfile name resolves to bash.
+FIXTURES = (
+    ("fixture.rb", "# note\ndef greet(name)\n  \"hi #{name}\"\nend\n"),
+    (".envrc", "# note\nexport API_KEY=\"secret\"\n"),
+)
 
 
 def resize(fd: int, width: int = 80, height: int = 24) -> None:
@@ -78,17 +83,19 @@ def main() -> None:
     if not binary.is_file():
         raise SystemExit("T053 package:build did not produce dist/xi")
 
+    for name, text in FIXTURES:
+        run_fixture(binary, name, text)
+
+
+def run_fixture(binary: Path, name: str, text: str) -> None:
     with tempfile.TemporaryDirectory(prefix="xi-t053-syntax-pty-") as temporary:
         isolated = Path(temporary)
         home = isolated / "home"
         empty_path = isolated / "empty-bin"
-        source = isolated / "fixture.rb"
+        source = isolated / name
         home.mkdir()
         empty_path.mkdir()
-        source.write_text(
-            "# note\ndef greet(name)\n  \"hi #{name}\"\nend\n",
-            encoding="utf-8",
-        )
+        source.write_text(text, encoding="utf-8")
 
         environment = os.environ.copy()
         environment.update(
@@ -172,7 +179,7 @@ def main() -> None:
             if child.returncode != 0:
                 raise SystemExit(f"T053 compiled binary exited with {child.returncode}")
             print(
-                f"T053 compiled-binary syntax PTY passed: embedded runtime/grammar wasm loaded, "
+                f"T053 compiled-binary syntax PTY passed for {name}: embedded runtime/grammar wasm loaded, "
                 f"highlighted markers={len(markers)} last={markers[-1] if markers else None}"
             )
         finally:

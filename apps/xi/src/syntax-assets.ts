@@ -85,6 +85,10 @@ const GRAMMAR_ASSET_LOADERS: Readonly<Record<string, GrammarAssetLoaders>> = {
     highlights: () => import('../../../node_modules/tree-sitter-json/queries/highlights.scm' as string, { with: { type: 'file' } }),
     extraHighlights: JSON_KEY_HIGHLIGHTS,
   },
+  bash: {
+    wasm: () => import('../../../node_modules/tree-sitter-bash/tree-sitter-bash.wasm' as string, { with: { type: 'file' } }),
+    highlights: () => import('../../../node_modules/tree-sitter-bash/queries/highlights.scm' as string, { with: { type: 'file' } }),
+  },
   toml: {
     wasm: () => import('../../../node_modules/@tree-sitter-grammars/tree-sitter-toml/tree-sitter-toml.wasm' as string, { with: { type: 'file' } }),
     highlights: () => import('../../../node_modules/@tree-sitter-grammars/tree-sitter-toml/queries/highlights.scm' as string, { with: { type: 'file' } }),

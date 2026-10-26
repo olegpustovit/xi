@@ -120,7 +120,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="${GITHUB_REF_NAME}"
-          printf 'Xi %s adds native Markdown previews with Space p and keeps Ctrl+O/Ctrl+I jump history across editor restarts.\n\n' "$tag" > dist/release/NOTES.md
+          printf 'Xi %s highlights shell scripts, shell dotfiles and .env/.envrc files, and makes yanks reach the system clipboard from inside tmux over mosh or ssh.\n\n' "$tag" > dist/release/NOTES.md
           cat >> dist/release/NOTES.md <<'NOTES'
           **macOS / Linux**
 

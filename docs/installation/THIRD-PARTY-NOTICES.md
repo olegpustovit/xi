@@ -66,6 +66,7 @@ version, license and notice source here first.
 | `@opentui/core` (typescript, javascript, markdown assets) | 0.5.11 | MIT | `@opentui/core/LICENSE` |
 | `tree-sitter-python` | 0.25.0 | MIT | `tree-sitter-python/LICENSE` |
 | `tree-sitter-ruby` | 0.23.1 | MIT | `tree-sitter-ruby/LICENSE` |
+| `tree-sitter-bash` (shell scripts, dotfiles, `.env`/`.envrc`) | 0.25.0 | MIT | `tree-sitter-bash/LICENSE` |
 | `tree-sitter-json` | 0.24.8 | MIT | `tree-sitter-json/LICENSE` |
 | `tree-sitter-ocaml` (implementation and interface) | 0.23.0 | MIT | `tree-sitter-ocaml/LICENSE` |
 | `tree-sitter-swift` (vendored wasm) | 0.7.1 | MIT | `vendor/tree-sitter-swift/LICENSE` |

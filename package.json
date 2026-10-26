@@ -1,6 +1,6 @@
 {
   "name": "xi",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "private": true,
   "type": "module",
   "engines": {
@@ -43,6 +43,7 @@
     "marked": "17.0.1",
     "oxc-parser": "0.150.0",
     "oxlint": "1.83.0",
+    "tree-sitter-bash": "0.25.0",
     "tree-sitter-json": "0.24.8",
     "tree-sitter-ocaml": "0.23.0",
     "tree-sitter-python": "0.25.0",
