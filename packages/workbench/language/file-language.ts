@@ -1,3 +1,9 @@
+/** Shell dotfiles and dotenv variants (`.env.local`) that Neovim also detects as shell. */
+const SHELL_FILE_NAMES: ReadonlySet<string> = new Set([
+  '.bashrc', '.bash_profile', '.bash_login', '.bash_logout', '.bash_aliases', '.profile',
+  '.zshrc', '.zshenv', '.zprofile', '.zlogin', '.zlogout', 'pkgbuild', 'apkbuild',
+]);
+
 /** Pure extension -> languageId mapping used when no languages.toml entry claims a file
  * type. Shared by the composition root's onBufferOpened/onBufferClosed callbacks and by
  * resolveLanguageId (which layers configured [[language]] file-types on top of this). */
@@ -15,5 +21,7 @@ export function languageIdForPath(path: string | undefined): string | undefined 
   if (extension === 'json' || extension === 'jsonc') return 'json';
   if (extension === 'toml') return 'toml';
   if (extension === 'md' || extension === 'markdown') return 'markdown';
+  if (extension === 'sh' || extension === 'bash' || extension === 'zsh' || extension === 'ksh' || extension === 'env' || extension === 'envrc') return 'bash';
+  if (fileName !== undefined && (SHELL_FILE_NAMES.has(fileName) || fileName.startsWith('.env.'))) return 'bash';
   return undefined;
 }

@@ -27,6 +27,7 @@ const GRAMMARS: Readonly<Record<string, readonly [string, string]>> = {
   ocaml_interface: ['node_modules/tree-sitter-ocaml/tree-sitter-ocaml_interface.wasm', 'node_modules/tree-sitter-ocaml/queries/highlights.scm'],
   swift: ['vendor/tree-sitter-swift/tree-sitter-swift.wasm', 'vendor/tree-sitter-swift/highlights.scm'],
   json: ['node_modules/tree-sitter-json/tree-sitter-json.wasm', 'node_modules/tree-sitter-json/queries/highlights.scm'],
+  bash: ['node_modules/tree-sitter-bash/tree-sitter-bash.wasm', 'node_modules/tree-sitter-bash/queries/highlights.scm'],
   toml: ['node_modules/@tree-sitter-grammars/tree-sitter-toml/tree-sitter-toml.wasm', 'node_modules/@tree-sitter-grammars/tree-sitter-toml/queries/highlights.scm'],
   markdown: ['node_modules/@opentui/core/assets/markdown/tree-sitter-markdown.wasm', 'node_modules/@opentui/core/assets/markdown/highlights.scm'],
 };
@@ -57,6 +58,7 @@ const SAMPLES: readonly (readonly [string, string, readonly SyntaxTokenKind[]])[
   ['ocaml_interface', '(* note *)\nval greet : string -> string\n', ['comment', 'keyword']],
   ['swift', '// note\nfunc greet(name: String) -> String { "hi \(name)" }\n', ['comment', 'keyword', 'string']],
   ['json', '{"key": "value", "count": 12, "flag": true}\n', ['property', 'string', 'number', 'constant']],
+  ['bash', '# note\nexport API_KEY="secret"\necho "$API_KEY"\n', ['comment', 'keyword', 'property', 'string', 'function']],
   ['toml', '# note\n[table]\nkey = "value"\ncount = 12\n', ['comment', 'property', 'string', 'number']],
   ['markdown', '# Heading\n\n- item\n\n```ts\nconst x = 1;\n```\n', ['keyword', 'punctuation', 'string']],
 ];
